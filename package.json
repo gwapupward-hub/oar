@@ -1,0 +1,31 @@
+{
+  "name": "open-app-registry",
+  "private": true,
+  "version": "0.1.1-rc.1",
+  "description": "Open App Registry (OAR): onchain application identity for Solana",
+  "license": "Apache-2.0",
+  "type": "module",
+  "workspaces": [
+    "packages/sdk",
+    "packages/cli"
+  ],
+  "scripts": {
+    "build:program": "cargo build-sbf --manifest-path programs/oar-registry/Cargo.toml",
+    "generate": "node scripts/sync-schemas.mjs && node scripts/generate-client.mjs",
+    "build": "npm run build -w @open-app-registry/sdk && npm run build -w @open-app-registry/cli",
+    "test": "cargo test -p oar-registry --lib && npm test -w @open-app-registry/sdk",
+    "typecheck": "npm run typecheck -w @open-app-registry/sdk && npm run typecheck -w @open-app-registry/cli",
+    "idl": "cargo run -q --release --manifest-path tools/idlgen/Cargo.toml -- programs/oar-registry > idl/oar_registry.json",
+    "test:sdk": "npm test -w @open-app-registry/sdk",
+    "check:source": "node scripts/check-release.mjs",
+    "check:production": "node scripts/check-release.mjs --production",
+    "package:candidate": "python3 scripts/package-release.py",
+    "test:cli": "npm test -w @open-app-registry/cli"
+  },
+  "devDependencies": {
+    "@codama/nodes-from-anchor": "^1.5.6",
+    "@codama/renderers-js": "^2.5.0",
+    "codama": "^1.11.0"
+  },
+  "packageManager": "npm@11.9.0"
+}

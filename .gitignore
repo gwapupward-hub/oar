@@ -1,0 +1,11 @@
+node_modules/
+dist/
+target/
+!target/deploy/.gitkeep
+*.tsbuildinfo
+.anchor/
+test-ledger/
+.DS_Store
+# Never commit keypairs
+*-keypair.json
+id.json

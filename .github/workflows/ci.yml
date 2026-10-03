@@ -1,0 +1,55 @@
+name: OAR checks
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      builder_image:
+        description: Reviewed Anchor 1.2.0 builder image with @sha256 digest (required for fresh program checks)
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  client:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run build && npm run typecheck && npm run test:sdk && npm run test:cli && npm run check:source
+      - run: npm run generate && git diff --exit-code -- schema packages/sdk/src/generated packages/sdk/src/schemas.ts
+      - run: python3 scripts/package-release.py /tmp/oar-candidate.zip
+  fresh-program:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - name: Check builder digest
+        env:
+          BUILDER_IMAGE: ${{ inputs.builder_image }}
+        run: |
+          [[ "$BUILDER_IMAGE" =~ ^quay.io/ottersec/anchor@sha256:[0-9a-f]{64}$ ]]
+      - name: Build and Rust checks inside approved immutable builder
+        env:
+          BUILDER_IMAGE: ${{ inputs.builder_image }}
+        run: |
+          docker run --rm -v "$PWD:/work" -w /work "$BUILDER_IMAGE" sh -eu -c 'rustc --version; cargo --version; solana --version; anchor --version; cargo fmt --all -- --check; cargo test --locked -p oar-registry --lib; cargo clippy --locked -p oar-registry --all-targets -- -D warnings; cargo build-sbf --manifest-path programs/oar-registry/Cargo.toml; cargo run --locked --release --manifest-path tools/idlgen/Cargo.toml -- programs/oar-registry > /tmp/fresh-idl.json; diff -u idl/oar_registry.json /tmp/fresh-idl.json'
+      - run: npm ci --ignore-scripts && npm run build && npm run typecheck
+      - run: OAR_PROGRAM_BINARY="$PWD/target/deploy/oar_registry.so" npm run test:sdk
+      - name: Second clean build comparison
+        env:
+          BUILDER_IMAGE: ${{ inputs.builder_image }}
+        run: |
+          cp target/deploy/oar_registry.so /tmp/first.so
+          rm -rf target
+          docker run --rm -v "$PWD:/work" -w /work "$BUILDER_IMAGE" sh -eu -c 'cargo build-sbf --manifest-path programs/oar-registry/Cargo.toml'
+          cmp /tmp/first.so target/deploy/oar_registry.so
+          sha256sum target/deploy/oar_registry.so idl/oar_registry.json Cargo.lock package-lock.json

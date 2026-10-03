@@ -1,0 +1,22 @@
+{
+  "oar": "0.1",
+  "app_id": "9bN34ZdBQQdEQEyBhNLmAPrcgjuAvCPfVW41AVbP6nmD",
+  "cluster": "solana:devnet",
+  "name": "GwapSpot",
+  "summary": "Reputation-based creator and deal marketplace on Solana.",
+  "categories": ["marketplace", "identity"],
+  "publisher": { "name": "GWAP", "url": "https://gwapspot.fun" },
+  "domains": ["gwapspot.fun"],
+  "links": {
+    "website": "https://gwapspot.fun",
+    "x": "https://x.com/_GwapSpot",
+    "github": "https://github.com/gwapupward-hub"
+  },
+  "repositories": [{ "url": "https://github.com/gwapupward-hub/oar", "role": "program" }],
+  "programs": [
+    { "address": "5hiqrftDiJ2EKcU4kUzvXWCdbMoEiWyJTqKjUNG5jqoo", "cluster": "solana:devnet", "name": "PPV Core", "role": "proofs" }
+  ],
+  "interfaces": ["wallet-standard"],
+  "security": { "contact": "mailto:security@gwapspot.fun" },
+  "extensions": { "fun.gwapspot": { "gwapscore": true } }
+}

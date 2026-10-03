@@ -1,0 +1,43 @@
+{
+  "name": "@open-app-registry/sdk",
+  "version": "0.1.1-rc.1",
+  "description": "TypeScript SDK for the Open App Registry (OAR): resolve, verify and register Solana application identities",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --import tsx --test test/*.test.ts"
+  },
+  "dependencies": {
+    "@noble/hashes": "^2.4.0",
+    "@solana-program/program-metadata": "^0.10.0",
+    "@solana/kit": "^8.4.0",
+    "ajv": "^8.20.0",
+    "canonicalize": "^5.1.0",
+    "@solana/program-client-core": "^8.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "litesvm": "^1.5.0",
+    "sas-lib": "^1.0.10",
+    "tsx": "^4.23.15",
+    "typescript": "5.9.3"
+  },
+  "engines": {
+    "node": ">=20.18"
+  }
+}
