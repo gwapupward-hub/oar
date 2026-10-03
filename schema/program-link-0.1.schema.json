@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/gwapupward-hub/oar/blob/main/schema/program-link-0.1.schema.json",
+  "title": "Open App Registry program backlink v0.1",
+  "description": "Content of the canonical Program Metadata account (seed \"oar\", direct data source, JSON format) written by the program's upgrade authority.",
+  "type": "object",
+  "required": ["oar", "app", "cluster"],
+  "additionalProperties": false,
+  "properties": {
+    "oar": { "const": "0.1" },
+    "app": { "type": "string", "pattern": "^[1-9A-HJ-NP-Za-km-z]{32,44}$" },
+    "cluster": { "enum": ["solana:mainnet", "solana:devnet", "solana:testnet"] }
+  }
+}
