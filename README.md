@@ -1,3 +1,14 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="brand/logos/OAR_primary_dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="brand/logos/OAR_primary_light.svg">
+    <img alt="OAR — Open App Registry" src="brand/logos/OAR_primary_light.svg" width="560">
+  </picture>
+</p>
+
+<p align="center"><strong>Open by default. Verifiable by design.</strong></p>
+<p align="center"><a href="./BRANDING.md">OAR Brand System v1.0</a></p>
+
 # Open App Registry (OAR)
 
 Onchain application identity for Solana. Every app gets one permanent **App ID** that wallets, explorers and stores can resolve to its publisher, domains, programs and source, with every link proven from both sides instead of just claimed.
@@ -30,6 +41,7 @@ examples/                Example manifest
 packages/sdk/            @open-app-registry/sdk — resolve, verify, register (@solana/kit 8)
 packages/cli/            @open-app-registry/cli — the `oar` command
 scripts/                 Codama client generation, schema embedding
+brand/                   OAR Brand System v1.0 assets, tokens and canonical copy
 ```
 
 ## Build and test

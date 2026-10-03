@@ -1,0 +1,21 @@
+{
+  "brand": {
+    "oarMidnight": "#07111F",
+    "registryBlue": "#246BFD",
+    "openCyan": "#22D3EE",
+    "verifiedMint": "#42E8B4",
+    "cloud": "#F5F8FC",
+    "slate": "#8B99AA",
+    "white": "#FFFFFF"
+  },
+  "status": {
+    "published": "#246BFD",
+    "domainLinked": "#22D3EE",
+    "programLinked": "#7C5CFC",
+    "sourceAvailable": "#AEB8C5",
+    "buildReproduced": "#42E8B4",
+    "attested": "#52DDB0",
+    "unknown": "#F5B942",
+    "disputedInvalid": "#EF6461"
+  }
+}

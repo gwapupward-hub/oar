@@ -1,0 +1,17 @@
+:root {
+  --oar-midnight: #07111F;
+  --oar-registry-blue: #246BFD;
+  --oar-open-cyan: #22D3EE;
+  --oar-verified-mint: #42E8B4;
+  --oar-cloud: #F5F8FC;
+  --oar-slate: #8B99AA;
+  --oar-white: #FFFFFF;
+  --oar-status-published: #246BFD;
+  --oar-status-domain-linked: #22D3EE;
+  --oar-status-program-linked: #7C5CFC;
+  --oar-status-source-available: #AEB8C5;
+  --oar-status-build-reproduced: #42E8B4;
+  --oar-status-attested: #52DDB0;
+  --oar-status-unknown: #F5B942;
+  --oar-status-disputed-invalid: #EF6461;
+}
