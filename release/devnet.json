@@ -1,0 +1,13 @@
+{
+  "cluster": "solana:devnet",
+  "genesisHash": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+  "status": "NOT_READY",
+  "programId": null,
+  "builderImage": "quay.io/ottersec/anchor@sha256:54e9bbc858586177159b136ba757d52a84832f2fe98e64224a4e104f71cfbb4d",
+  "builderNotes": "Tag v1.2.0, resolved 2026-10-04: anchor-cli 1.2.0, solana-cli 4.1.2 (Agave), cargo-build-sbf 4.1.0, platform-tools v1.54, rustc/cargo 1.98.1, Ubuntu 22.04.5",
+  "build": null,
+  "deployment": null,
+  "idl": null,
+  "smoke": null,
+  "history": []
+}

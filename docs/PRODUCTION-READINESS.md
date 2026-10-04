@@ -28,6 +28,20 @@ No functional onchain instruction or account-layout change was made. Anchor/secu
 
 Instruction simulations use the HISTORICAL supplied binary, SHA-256 `90026a6b69acff7027d21676cc5000b524d9f141aa0b4f7747ff62c97a607458`. These tests validate the changed SDK against that artifact. They do not establish fresh Rust source-to-binary equivalence. Rust, Cargo, Solana/Agave, Anchor and Docker executables are unavailable in this workspace; no Rust units, fresh sBPF build, CI run, independent reproducibility comparison, local-validator or devnet rehearsal ran here. The release builder digest and exact Rust/platform-tools pins remain unset rather than invented.
 
+## Devnet preparation — October 4, 2026
+
+- Two Rust release-gate blockers were fixed:
+  - `cargo fmt --check` failed on the `validate.rs` tests.
+  - `Cargo.lock` held `solana-security-txt` 1.1.3 against the `=1.1.1` pin, so every `--locked` build failed.
+- The builder is pinned to `quay.io/ottersec/anchor@sha256:54e9bbc858586177159b136ba757d52a84832f2fe98e64224a4e104f71cfbb4d` (tag v1.2.0). It contains anchor-cli 1.2.0, Agave 4.1.2, cargo-build-sbf 4.1.0, platform-tools v1.54 and rustc 1.98.1. The program builds from source with it.
+- CI now builds the program on every push and PR, requires a byte-identical second build, and runs the SDK suite against that binary. The historical fixture was removed.
+- Guarded operator scripts (`scripts/devnet/`) and `docs/DEVNET-DEPLOY.md` cover:
+  - a read-only preflight;
+  - deploying the exact CI artifact, with the onchain hash compared afterwards;
+  - publishing the IDL through Program Metadata and reading it back;
+  - a 13-case smoke suite.
+- Status: devnet deployment waits on the fresh program identity (public address) and the operator run. Mainnet remains NO-GO on the gates below.
+
 ## Remaining deployment blockers and owners
 
 | Gate | Owner | Acceptance evidence |

@@ -20,7 +20,12 @@
     "check:source": "node scripts/check-release.mjs",
     "check:production": "node scripts/check-release.mjs --production",
     "package:candidate": "python3 scripts/package-release.py",
-    "test:cli": "npm test -w @open-app-registry/cli"
+    "test:cli": "npm test -w @open-app-registry/cli",
+    "test:devnet": "node --test scripts/devnet/test/*.test.mjs",
+    "devnet:preflight": "node scripts/devnet/preflight.mjs",
+    "devnet:deploy": "node scripts/devnet/deploy.mjs",
+    "devnet:idl": "node scripts/devnet/publish-idl.mjs",
+    "devnet:smoke": "node scripts/devnet/smoke.mjs"
   },
   "devDependencies": {
     "@codama/nodes-from-anchor": "^1.5.6",

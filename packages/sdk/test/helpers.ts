@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { LiteSVM, FailedTransactionMetadata } from 'litesvm';
@@ -20,9 +21,13 @@ import {
 import { OAR_PROGRAM_ID } from '../src/index.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
-export const PROGRAM_SO = process.env.OAR_PROGRAM_BINARY ?? join(here, '../../../fixtures/reference/oar_registry.so');
+/** Program under test: a fresh build of this source (CI passes its artifact via OAR_PROGRAM_BINARY). */
+export const PROGRAM_SO = process.env.OAR_PROGRAM_BINARY ?? join(here, '../../../target/deploy/oar_registry.so');
 
 export function createSvm(): LiteSVM {
+  if (!existsSync(PROGRAM_SO)) {
+    throw new Error(`No program binary at ${PROGRAM_SO}. Run \`npm run build:program\` or set OAR_PROGRAM_BINARY.`);
+  }
   const svm = new LiteSVM();
   svm.addProgramFromFile(OAR_PROGRAM_ID, PROGRAM_SO);
   return svm;

@@ -17,8 +17,8 @@ HTTPS, DNS and metadata bytes are untrusted. Default Node transport validates al
 1. Place source in the intended Git repository and review the exact commit. Protect release branches and workflow changes. Preserve this archive's source hashes; the original archive has no upstream Git history.
 2. Privately create/approve a fresh program identity using the release team's custody process. Keep its program-address signer separate from deployer and upgrade authority. Never reuse the reference identity.
 3. Pass ONLY the approved public address to `node scripts/set-program-id.mjs <PUBLIC_ADDRESS>`. Source, Anchor config, IDL and generated client are synchronized. Update app manifests/backlinks for the newly derived App IDs. Rebuild everything; the old test binary is unusable after identity changes.
-4. Select the approved Anchor 1.2.0 builder by immutable digest. Record its exact Rust, Agave/platform-tools, Cargo, Anchor and OS versions. Set `release/production.json` with the digest and source commit. Toolchain compatibility must be demonstrated, not inferred from a tag.
-5. Run the manual `fresh-program` CI workflow with that digest. It checks Rust tests/format/clippy, builds sBPF, generates/compares the IDL, runs tests with `OAR_PROGRAM_BINARY` pointing to the fresh output, and compares two clean builds. Retain logs, sizes and SHA-256 hashes. Run a separate controlled builder for independent reproducibility evidence where practical.
+4. The approved Anchor 1.2.0 builder is pinned by digest in `release/devnet.json`, with its recorded tool versions. For mainnet, set `release/production.json` to the same digest and the source commit. Toolchain compatibility must be demonstrated, not inferred from a tag.
+5. The `program` CI job runs on every push and PR. It covers Rust tests, format and clippy, the sBPF build and the IDL comparison, and requires two clean builds to be byte-identical. The `client` job runs the SDK suite with `OAR_PROGRAM_BINARY` pointing to that output. Retain the uploaded artifact (`oar_registry.so` and `build-metadata.json` with the SHA-256 and executable hash) for the commit being released. Run a separate controlled builder for independent reproducibility evidence where practical.
 6. Review advisory/license results for both JS and Rust dependency graphs. The local JS audit returned zero reported advisories; Rust advisory checks have not run. Pin workflow actions to reviewed immutable commits before production CI use.
 
 ## Supported first-release scope
@@ -30,6 +30,8 @@ Excluded from first-release acceptance: build/source/audit chips; immutable-prog
 SAS gate: provision TEST credentials and version-2 schemas on the intended devnet SAS release, issue correct and deliberately mismatched evidence, verify accepted methods/field encoding/expiry, pause a schema and close/revoke evidence, and re-resolve. The pinned `sas-lib@1.0.10` fixtures establish wire-format compatibility locally only. Audit/build vector codes remain unresolved and unsupported. Capture actual credential/schema addresses and transaction signatures; never substitute local fixtures for this evidence.
 
 ## Devnet rehearsal and security acceptance
+
+The devnet deploy, IDL publication and smoke suite are scripted and gated in `docs/DEVNET-DEPLOY.md`. Evidence is recorded in `release/devnet.json` and `release/evidence/`.
 
 Use an explicitly approved devnet program ID, artifact SHA-256, fee payer, upgrade governance path and RPC/genesis. No live mutation is authorized merely by access to a signer. Rehearse register/update/transfer cancellation/acceptance/deprecation/retirement, wrong signers, invalid inputs and repeated operations. Exercise canonical Program Metadata, both domain proofs, exact repository roots, expiry/revocation, malformed dependencies and cross-cluster claims. Measure compute, transaction size and account rent for actual paths. Capture actual signatures and slots.
 

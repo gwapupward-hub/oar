@@ -3,15 +3,65 @@ on:
   push:
   pull_request:
   workflow_dispatch:
-    inputs:
-      builder_image:
-        description: Reviewed Anchor 1.2.0 builder image with @sha256 digest (required for fresh program checks)
-        required: true
-        type: string
 permissions:
   contents: read
 jobs:
+  # Builds the program from source inside the digest-pinned builder recorded in release/devnet.json.
+  # The uploaded artifact (binary + build-metadata.json) is what scripts/devnet/deploy.mjs deploys.
+  # No job here deploys or receives signer material.
+  program:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - name: Pinned builder
+        id: builder
+        run: |
+          img="$(node -p "require('./release/devnet.json').builderImage")"
+          [[ "$img" =~ ^quay.io/ottersec/anchor@sha256:[0-9a-f]{64}$ ]]
+          echo "image=$img" >> "$GITHUB_OUTPUT"
+          docker pull -q "$img"
+          docker run --rm "$img" sh -c 'rustc --version; cargo --version; solana --version; anchor --version; cargo-build-sbf --version' | tee "$RUNNER_TEMP/tool-versions.txt"
+      - name: Rust checks, sBPF build and IDL drift (inside builder)
+        env:
+          BUILDER_IMAGE: ${{ steps.builder.outputs.image }}
+        run: |
+          docker run --rm -v "$PWD:/work" -w /work "$BUILDER_IMAGE" sh -eu -c '
+            cargo fmt --all -- --check
+            cargo clippy --locked -p oar-registry --all-targets -- -D warnings
+            cargo test --locked -p oar-registry --lib
+            cargo build-sbf --manifest-path programs/oar-registry/Cargo.toml -- --locked
+            cargo run --locked --release --manifest-path tools/idlgen/Cargo.toml -- programs/oar-registry > /tmp/fresh-idl.json
+            diff -u idl/oar_registry.json /tmp/fresh-idl.json'
+      - name: Second clean build must be byte-identical
+        env:
+          BUILDER_IMAGE: ${{ steps.builder.outputs.image }}
+        run: |
+          cp target/deploy/oar_registry.so "$RUNNER_TEMP/first.so"
+          sudo rm -rf target
+          docker run --rm -v "$PWD:/work" -w /work "$BUILDER_IMAGE" sh -eu -c 'cargo build-sbf --manifest-path programs/oar-registry/Cargo.toml -- --locked'
+          cmp "$RUNNER_TEMP/first.so" target/deploy/oar_registry.so
+      - name: Artifact and metadata
+        env:
+          BUILDER_IMAGE: ${{ steps.builder.outputs.image }}
+        run: |
+          # Only the binary and metadata are published; cargo build-sbf's generated target/deploy/*-keypair.json never leaves the runner.
+          mkdir -p "$RUNNER_TEMP/oar-artifact"
+          cp target/deploy/oar_registry.so "$RUNNER_TEMP/oar-artifact/"
+          node scripts/devnet/artifact-metadata.mjs --so target/deploy/oar_registry.so --builder "$BUILDER_IMAGE" \
+            --versions "$RUNNER_TEMP/tool-versions.txt" --double-build-match true --out "$RUNNER_TEMP/oar-artifact/build-metadata.json"
+          { echo '```json'; cat "$RUNNER_TEMP/oar-artifact/build-metadata.json"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: oar_registry-${{ github.sha }}
+          path: ${{ runner.temp }}/oar-artifact/
+          if-no-files-found: error
+          retention-days: 90
   client:
+    needs: program
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -19,37 +69,14 @@ jobs:
         with:
           node-version-file: .node-version
           cache: npm
+      - uses: actions/download-artifact@v4
+        with:
+          name: oar_registry-${{ github.sha }}
+          path: ${{ runner.temp }}/oar-artifact
       - run: npm ci --ignore-scripts
-      - run: npm run build && npm run typecheck && npm run test:sdk && npm run test:cli && npm run check:source
+      - run: npm run build && npm run typecheck && npm run test:cli && npm run test:devnet && npm run check:source
+      - run: npm run test:sdk
+        env:
+          OAR_PROGRAM_BINARY: ${{ runner.temp }}/oar-artifact/oar_registry.so
       - run: npm run generate && git diff --exit-code -- schema packages/sdk/src/generated packages/sdk/src/schemas.ts
       - run: python3 scripts/package-release.py /tmp/oar-candidate.zip
-  fresh-program:
-    if: github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .node-version
-          cache: npm
-      - name: Check builder digest
-        env:
-          BUILDER_IMAGE: ${{ inputs.builder_image }}
-        run: |
-          [[ "$BUILDER_IMAGE" =~ ^quay.io/ottersec/anchor@sha256:[0-9a-f]{64}$ ]]
-      - name: Build and Rust checks inside approved immutable builder
-        env:
-          BUILDER_IMAGE: ${{ inputs.builder_image }}
-        run: |
-          docker run --rm -v "$PWD:/work" -w /work "$BUILDER_IMAGE" sh -eu -c 'rustc --version; cargo --version; solana --version; anchor --version; cargo fmt --all -- --check; cargo test --locked -p oar-registry --lib; cargo clippy --locked -p oar-registry --all-targets -- -D warnings; cargo build-sbf --manifest-path programs/oar-registry/Cargo.toml; cargo run --locked --release --manifest-path tools/idlgen/Cargo.toml -- programs/oar-registry > /tmp/fresh-idl.json; diff -u idl/oar_registry.json /tmp/fresh-idl.json'
-      - run: npm ci --ignore-scripts && npm run build && npm run typecheck
-      - run: OAR_PROGRAM_BINARY="$PWD/target/deploy/oar_registry.so" npm run test:sdk
-      - name: Second clean build comparison
-        env:
-          BUILDER_IMAGE: ${{ inputs.builder_image }}
-        run: |
-          cp target/deploy/oar_registry.so /tmp/first.so
-          rm -rf target
-          docker run --rm -v "$PWD:/work" -w /work "$BUILDER_IMAGE" sh -eu -c 'cargo build-sbf --manifest-path programs/oar-registry/Cargo.toml'
-          cmp /tmp/first.so target/deploy/oar_registry.so
-          sha256sum target/deploy/oar_registry.so idl/oar_registry.json Cargo.lock package-lock.json
