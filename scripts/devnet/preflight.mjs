@@ -15,6 +15,7 @@ import {
   PROGRAMDATA_HEADER_BYTES,
   PROGRAM_ACCOUNT_BYTES,
   RELEASE_FILE,
+  SYSTEM_PROGRAM,
   UPGRADEABLE_LOADER,
   declaredProgramId,
   executableHash,
@@ -45,6 +46,23 @@ export const OPTIONS = {
   payer: { type: 'string' },
   json: { type: 'boolean', default: false },
 };
+
+/**
+ * The address exists but is not a loader program. A plain system account holding lamports (someone sent SOL
+ * to the program ID) blocks the first deploy, which must create the program account itself.
+ */
+export function describeNonProgram(account, show) {
+  if (account.ok) {
+    try {
+      const a = JSON.parse(account.stdout).account;
+      const lamports = BigInt(account.stdout.match(/"lamports"\s*:\s*(\d+)/)?.[1] ?? '0');
+      const space = a.space ?? Buffer.from(a.data?.[0] ?? '', 'base64').length;
+      if (a.owner === SYSTEM_PROGRAM && !a.executable && space === 0) return { prefunded: { lamports } };
+      return { error: `account is owned by ${a.owner} (${space} bytes, executable ${a.executable}), not the upgradeable loader` };
+    } catch {}
+  }
+  return { error: show.stderr || show.stdout };
+}
 
 /** Collect every fact the gate needs. All reads; no transactions. */
 export function gather(opts) {
@@ -89,7 +107,7 @@ export function gather(opts) {
     const show = tryRun('solana', ['program', 'show', facts.declaredId, '-u', opts.rpc, '--output', 'json']);
     if (show.ok) facts.onchain = { exists: true, show: JSON.parse(show.stdout) };
     else if (/Unable to find the account/i.test(show.stderr + show.stdout)) facts.onchain = { exists: false };
-    else facts.onchain = { error: show.stderr || show.stdout };
+    else facts.onchain = describeNonProgram(tryRun('solana', ['account', facts.declaredId, '-u', opts.rpc, '--output', 'json']), show);
     if (facts.keys.payer) {
       const bal = tryRun('solana', ['balance', facts.keys.payer, '--lamports', '-u', opts.rpc]);
       facts.payerLamports = bal.ok ? BigInt(bal.stdout.match(/^\d+/)?.[0] ?? '0') : null;
@@ -149,7 +167,13 @@ export function evaluate(f) {
   let requiredLamports = null;
   const bytes = BigInt(f.artifact?.bytes ?? 0);
   if (f.onchain?.error) no(`Could not read the program account: ${f.onchain.error}`);
-  else if (f.onchain?.exists === false) {
+  else if (f.onchain?.prefunded) {
+    no(
+      `Program address ${f.declaredId} already holds ${sol(f.onchain.prefunded.lamports)} as a plain system account, so the first deploy ` +
+        'cannot create the program account there. Return the SOL with the program keypair, then re-run preflight:\n' +
+        `        solana transfer ${payer ?? '<FEE_PAYER_PUBKEY>'} ALL --from <PROGRAM_KEYPAIR> --fee-payer <PROGRAM_KEYPAIR> --allow-unfunded-recipient -u <RPC>`,
+    );
+  }  else if (f.onchain?.exists === false) {
     mode = 'fresh';
     if (!program) no('--program-keypair is required for the first deployment');
     else if (program !== f.declaredId) no(`Program keypair is ${program}, source declares ${f.declaredId}`);

@@ -11,6 +11,7 @@ export const DEVNET_GENESIS = 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG';
 export const DEFAULT_RPC = 'https://api.devnet.solana.com';
 export const EXPOSED_ID = 'oarWKQoXgxp69Vupf883Pr1PvN35rAyZJeFu8q4pae5';
 export const UPGRADEABLE_LOADER = 'BPFLoaderUpgradeab1e11111111111111111111111';
+export const SYSTEM_PROGRAM = '11111111111111111111111111111111';
 export const RELEASE_FILE = join(root, 'release', 'devnet.json');
 
 /** Loader-v3 account sizes: program account, ProgramData header, buffer header. */
