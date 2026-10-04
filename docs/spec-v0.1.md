@@ -270,7 +270,7 @@ Issuers record the result of a link-proof check as a Solana Attestation Service 
 2. Re-check at least daily and whenever `ManifestUpdated` fires; close the attestation when a check fails.
 3. Issuer-asserted immutable-program evidence is deferred. The current verifier rejects program methods other than 0; no historical-signature method is implemented.
 
-**Clients** keep an explicit list of trusted credentials and MUST treat expired attestations as absent. The reference SDK ships an empty default trust list. Integrators explicitly select credentials after SAS compatibility and issuer operations are reviewed. No reference verifier service is implemented in this package. Explorers SHOULD show the issuer beside each badge.
+**Clients** keep an explicit list of trusted credentials and MUST treat expired attestations as absent. Clients MUST also treat an attestation as absent unless its `signer` is in the credential's current `authorized_signers`. SAS checks the signer only at issuance, so removing a signer from the credential withdraws everything that signer issued. The reference SDK ships an empty default trust list. Integrators explicitly select credentials after SAS compatibility and issuer operations are reviewed. No reference verifier service is implemented in this package. Explorers SHOULD show the issuer beside each badge.
 
 ## Resolution and display
 
@@ -343,7 +343,7 @@ The main attack is impersonation, and the defence is that names prove nothing wh
 | Manifest host changes or disappears | Hash check fails; shown as "metadata unavailable" | Availability, not integrity |
 | Malicious manifest content | Plain-text rendering only; size limits; raster icons with hash | Client bugs |
 | Look-alike hostnames | Proofs verify control, not intent; punycode display | Users misreading names |
-| Compromised or careless issuer | Client-chosen issuer lists; issuer shown per badge; attestations are public and auditable | Clients trusting a bad issuer |
+| Compromised or careless issuer | Client-chosen issuer lists; issuer shown per badge; attestations are public and auditable; removing a compromised signer from the credential withdraws its evidence | Clients trusting a bad issuer |
 | Registry program upgrade abuse | Upgrade authority in a multisig with outside signers; verified build; freeze at v1.0 | Until frozen |
 | Cluster confusion | Cluster in the manifest, backlink and well-known file | None known |
 
@@ -420,6 +420,7 @@ Phases are sequential and not to scale; a phase starts only when the gate above 
 
 ## Hardening candidate acceptance requirements
 
+- Supported link attestations require a `signer` currently listed in the credential's `authorized_signers` (credential account owned by SAS, discriminator 0).
 - Supported link attestations require positive `checked_at` no later than the verifier clock, nonzero expiry later than `checked_at`, expiry no later than `checked_at + schema TTL`, and `now < expiry`. Exact expiry is expired. No grace period is applied.
 - The supplied program-address keypair was exposed. That public ID and historical binary are local-test-only; distribution excludes signer material. Fresh program identity changes registry-derived App IDs and requires new manifests/backlinks.
 - Node hosted HTTP must reject private/special-use destinations and pin checked DNS answers at connection time. Custom fetch transports are trusted adapters and must provide equivalent policy. HTTP/DNS/body work is time bounded; malformed dependency evidence fails closed.

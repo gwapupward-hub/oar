@@ -108,7 +108,7 @@ Apache-2.0
 
 ## Hardened verification contract
 
-Link schemas use version 2. `deriveAttestationNonce(schema, appId, subject, { appCluster, programCluster? })` requires cluster context; program claims require both clusters. Old version-1 attestations are not lifted into badges. The full onchain schema layout, field names, paused state, payload, nonce and expiry are checked. Domain methods 0/1 and program method 0 are supported. Evidence must expire within 30 days (domain/repo) or 90 days (program); zero-expiry evidence is rejected.
+Link schemas use version 2. `deriveAttestationNonce(schema, appId, subject, { appCluster, programCluster? })` requires cluster context; program claims require both clusters. Old version-1 attestations are not lifted into badges. The full onchain schema layout, field names, paused state, payload, nonce and expiry are checked, and the attestation's signer must still be an authorized signer of its credential. Domain methods 0/1 and program method 0 are supported. Evidence must expire within 30 days (domain/repo) or 90 days (program); zero-expiry evidence is rejected.
 
 The default issuer list is empty. No issuer service, build/source/audit badge adapter, binary security metadata reader, or onchain deployment is included. The supported production scope is live bidirectional link verification, plus explicitly configured issuer evidence once SAS compatibility has been rehearsed.
 
