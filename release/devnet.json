@@ -58,5 +58,20 @@
     "appId": "33L4fdKedbumTLHpzqcyskWu6pSE6WXh3pYQGioYuMBf",
     "at": "2026-10-04T09:47:23.513Z"
   },
-  "history": []
+  "history": [],
+  "oarApp": {
+    "appId": "Bu1JCyxiVDdDGjtNLLkKhq6KZv6E4LcUgqNkS5t5Nf2K",
+    "uri": "https://raw.githubusercontent.com/gwapupward-hub/oar/2b393297d528857d59050fe7686dedecfb884fa9/release/devnet/oar.manifest.json",
+    "manifestSha256": "6ab833dc54c3d75f092c01881e2502237163c0d9ec7a255efd7b980eb6091a24",
+    "pass": true,
+    "evidence": "release/evidence/devnet-oar-app-2026-10-04-Bu1JCyxi.json",
+    "at": "2026-10-04T15:35:54.867Z"
+  },
+  "sas": {
+    "pass": true,
+    "credential": "GFHnocWSaJBAVwfrT4yuzGA1QkGFuA5Eg7NUWcSQ8yUK",
+    "issuer": "6d16rG1kUt2g6nkzZsfZfoxdKR52WkD34mD3SX3SBbBN",
+    "evidence": "release/evidence/devnet-sas-rehearsal-2026-10-04-GFHnocWS.json",
+    "at": "2026-10-04T15:39:14.088Z"
+  }
 }
