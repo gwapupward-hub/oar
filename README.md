@@ -13,10 +13,10 @@
 
 Onchain application identity for Solana. Every app gets one permanent **App ID** that wallets, explorers and stores can resolve to its publisher, domains, programs and source, with every link proven from both sides instead of just claimed.
 
-> Status: **0.1.1-rc.1 production-hardening candidate; NO-GO for deployment.** Local SDK/CLI checks pass. Fresh program build, private release identity, SAS rehearsal, governance and independent review remain required. See `docs/PRODUCTION-READINESS.md` and `docs/RELEASE-RUNBOOK.md`.
+> Status: **0.1.1-rc.1. Devnet: deployment prepared, not yet deployed; mainnet: NO-GO.** CI builds the program from source in a digest-pinned builder and tests that binary. Devnet deployment follows `docs/DEVNET-DEPLOY.md` once a fresh program identity is set. SAS rehearsal, governance and independent review remain mainnet gates. See `docs/PRODUCTION-READINESS.md`.
 
 - **Spec:** `docs/spec-v0.1.md` (updated implementation contract)
-- **Program ID (reference build):** `oarWKQoXgxp69Vupf883Pr1PvN35rAyZJeFu8q4pae5`
+- **Program ID:** `oariw8YXcYJh9sa9VcmBU3ZCdo2WVGMYPsLjEuUxfrC` (devnet deployment pending; see `release/devnet.json`). The previous `oarWKQoXgxp69Vupf883Pr1PvN35rAyZJeFu8q4pae5` is an exposed reference ID, and source checks and the CLI block it.
 
 ## How it works
 
@@ -46,7 +46,7 @@ brand/                   OAR Brand System v1.0 assets, tokens and canonical copy
 
 ## Build and test
 
-Client checks use Node 24.19.0 and npm 11.9.0. Fresh Rust/sBPF checks require a reviewed digest-pinned Anchor 1.2.0 builder; its tool versions must be recorded. The builder digest is currently unset.
+Client checks use Node 24.19.0 and npm 11.9.0. Release builds use the digest-pinned Anchor 1.2.0 builder in `release/devnet.json` (Agave 4.1.2, platform-tools v1.54). The SDK tests need a program binary: `npm run build:program` writes one to `target/deploy/`, or set `OAR_PROGRAM_BINARY` to a CI artifact.
 
 ```bash
 npm ci --ignore-scripts
@@ -100,7 +100,7 @@ Wallets should show an app name for a program only when `link.state === 'verifie
 
 ## Security
 
-The supplied keypair was exposed and has been removed from distribution. The reference ID and `fixtures/reference/oar_registry.so` are LOCAL-TEST-ONLY. CLI writes at that ID are blocked. Select a fresh identity privately; pass only its public address to `node scripts/set-program-id.mjs <PUBLIC_ADDRESS>`. This changes all App IDs derived under the registry and requires regenerating manifests/backlinks. No production key or issuer credential is included. See `SECURITY.md`.
+The supplied keypair was exposed and has been removed from distribution. The reference ID is LOCAL-TEST-ONLY, and CLI writes at that ID are blocked. The historical binary built at that ID was removed; tests now run against a fresh source build. Select a fresh identity privately and pass only its public address to `node scripts/set-program-id.mjs <PUBLIC_ADDRESS>`. This changes all App IDs derived under the registry and requires regenerating manifests/backlinks. No production key or issuer credential is included. See `SECURITY.md`.
 
 ## License
 
@@ -117,11 +117,12 @@ Node HTTP uses a public-destination policy and pins validated DNS answers into e
 ```bash
 npm run build
 npm run typecheck
-npm run test:sdk       # uses the HISTORICAL test fixture unless OAR_PROGRAM_BINARY is set
+npm run test:sdk       # needs target/deploy/oar_registry.so or OAR_PROGRAM_BINARY
+npm run test:devnet    # devnet release-gate unit tests
 npm run test:cli
 npm run check:source
 npm run check:production  # intentionally fails until external release evidence exists
 python3 scripts/package-release.py /tmp/oar-candidate.zip
 ```
 
-The fresh-program CI workflow requires an immutable builder digest, rebuilds from source, compares the fresh IDL, tests the fresh binary, and compares two clean builds. It has been added but has not run in this environment. No workflow deploys or receives signer material.
+On every push and PR, CI runs these steps inside the pinned builder: rustfmt, clippy and Rust tests, the sBPF build, an IDL drift check and a byte-identical second build. The client job then runs the SDK suite against that exact binary, and the binary is uploaded with `build-metadata.json` for the devnet operator scripts (`scripts/devnet/`). No workflow deploys or receives signer material.

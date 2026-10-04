@@ -63,7 +63,7 @@ import {
 import { findAppRecordPda } from "../pdas/index.js";
 
 export const OAR_REGISTRY_PROGRAM_ADDRESS =
-  "oarWKQoXgxp69Vupf883Pr1PvN35rAyZJeFu8q4pae5" as Address<"oarWKQoXgxp69Vupf883Pr1PvN35rAyZJeFu8q4pae5">;
+  "oariw8YXcYJh9sa9VcmBU3ZCdo2WVGMYPsLjEuUxfrC" as Address<"oariw8YXcYJh9sa9VcmBU3ZCdo2WVGMYPsLjEuUxfrC">;
 
 export enum OarRegistryAccount {
   AppRecord,
@@ -236,7 +236,7 @@ export function identifyOarRegistryInstruction(
 }
 
 export type ParsedOarRegistryInstruction<
-  TProgram extends string = "oarWKQoXgxp69Vupf883Pr1PvN35rAyZJeFu8q4pae5",
+  TProgram extends string = "oariw8YXcYJh9sa9VcmBU3ZCdo2WVGMYPsLjEuUxfrC",
 > =
   | ({
       instructionType: OarRegistryInstruction.AcceptAuthority;

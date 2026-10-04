@@ -239,7 +239,7 @@ program
     const cluster = parseCluster(o.cluster);
     writeJson(o.out, buildProgramLink(o.app, cluster), o.force);
     console.log(`Wrote ${o.out}. As the program's upgrade authority, run on the program's cluster:\n`);
-    console.log(`  npx @solana-program/program-metadata@latest write oar <PROGRAM_ID> ./${o.out} --format json --rpc <RPC_URL>\n`);
+    console.log(`  npx @solana-program/program-metadata@0.10.0 write oar <PROGRAM_ID> ./${o.out} --format json -k <UPGRADE_AUTHORITY_KEYPAIR> --rpc <RPC_URL>\n`);
     console.log('For a Squads-controlled program add: --export <VAULT_ADDRESS>');
   });
 
