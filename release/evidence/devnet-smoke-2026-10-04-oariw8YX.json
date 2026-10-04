@@ -1,0 +1,117 @@
+{
+  "programId": "oariw8YXcYJh9sa9VcmBU3ZCdo2WVGMYPsLjEuUxfrC",
+  "cluster": "solana:devnet",
+  "rpcHost": "api.devnet.solana.com",
+  "deploymentSlot": 507319507,
+  "appId": "33L4fdKedbumTLHpzqcyskWu6pSE6WXh3pYQGioYuMBf",
+  "creator": "91N96ZPGHcFWe2jEZie9rUVqyHF5BWMV7mYnHMurhWB7",
+  "at": "2026-10-04T09:47:23.513Z",
+  "pass": true,
+  "results": [
+    {
+      "case": "register",
+      "signer": "payer",
+      "expected": "success",
+      "pass": true,
+      "signature": "4XQeaMn5ZrnAUt9dkAi6WLHPpYXEMwwym3vZYaPmsbTcLs9Kt83gFLUGEye3wHrQNPMyyMPb5Gk4NbgcGdzMD2ox",
+      "slot": 507322706,
+      "computeUnits": 8484
+    },
+    {
+      "case": "register again with the same nonce",
+      "signer": "payer",
+      "expected": "error /already in use|custom program error: 0x0|simulation failed/i",
+      "pass": true,
+      "error": "simulation failed"
+    },
+    {
+      "case": "update by a non-authority",
+      "signer": "ephemeral",
+      "expected": "error /Error Code: Unauthorized/",
+      "pass": true,
+      "error": "Error Code: Unauthorized"
+    },
+    {
+      "case": "update by the authority",
+      "signer": "payer",
+      "expected": "success",
+      "pass": true,
+      "signature": "5q1vBMEzArrN2nUctnEEpXejbVQBbKdkBxMMvUUUi66oZFcCQcrsFEHm28hQ3xLWbZ2Af3xN79LwVfz2QpyoEuoc",
+      "slot": 507322785,
+      "computeUnits": 4063
+    },
+    {
+      "case": "accept with no pending authority",
+      "signer": "ephemeral",
+      "expected": "error /Error Code: NoPendingAuthority/",
+      "pass": true,
+      "error": "Error Code: NoPendingAuthority"
+    },
+    {
+      "case": "propose authority",
+      "signer": "payer",
+      "expected": "success",
+      "pass": true,
+      "signature": "2cSRBM7pdv8u4rfsA3sF6SPP6dk5LE56TePnnvabAshF8wBEustssi6xqtPTtCgrtn1LjJVy29VtnJxsphEyPWZW",
+      "slot": 507322824,
+      "computeUnits": 3467
+    },
+    {
+      "case": "accept by a key that was not proposed",
+      "signer": "payer",
+      "expected": "error /Error Code: Unauthorized/",
+      "pass": true,
+      "error": "Error Code: Unauthorized"
+    },
+    {
+      "case": "accept by the proposed key",
+      "signer": "ephemeral",
+      "expected": "success",
+      "pass": true,
+      "signature": "3FDvwrUQrJcJwapjxQMr5D9C8Sff6mRbAHiUnaZt19QCodh1HeJEhHvmXJZHjbbSqrH2GindUKeRxLZKu8kAH5DL",
+      "slot": 507322872,
+      "computeUnits": 3495
+    },
+    {
+      "case": "update by the previous authority",
+      "signer": "payer",
+      "expected": "error /Error Code: Unauthorized/",
+      "pass": true,
+      "error": "Error Code: Unauthorized"
+    },
+    {
+      "case": "set status deprecated",
+      "signer": "ephemeral",
+      "expected": "success",
+      "pass": true,
+      "signature": "3GrmL7ssRR6RW4FjPNJNtqNJuPhWPWag18m8FFJR1DkepJCPKcsVUXPJW6NvdT3HdttyYkcubJLUUQpLHzFUpbhb",
+      "slot": 507322917,
+      "computeUnits": 3408
+    },
+    {
+      "case": "set status retired",
+      "signer": "ephemeral",
+      "expected": "success",
+      "pass": true,
+      "signature": "5iCuzvaCjXRkdM9xoxSE2UhvdM2dJtBjj15YMJ7F7FmkCB5a3PD6B2sq1fprgbuvDSmdcRjq7Nrw5VZVhovugKC5",
+      "slot": 507322942,
+      "computeUnits": 3412
+    },
+    {
+      "case": "update after retirement",
+      "signer": "ephemeral",
+      "expected": "error /Error Code: AppRetired/",
+      "pass": true,
+      "error": "Error Code: AppRetired"
+    },
+    {
+      "case": "final record state (Retired, new authority, revision 1)",
+      "pass": true,
+      "observed": {
+        "status": "Retired",
+        "authority": "AXRewKFrE4MnAW4TorfaATshBRxCfwQBfFtst2YTHB11",
+        "revision": 1
+      }
+    }
+  ]
+}

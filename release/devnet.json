@@ -1,13 +1,62 @@
 {
   "cluster": "solana:devnet",
   "genesisHash": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
-  "status": "NOT_READY",
-  "programId": null,
+  "status": "DEVNET_VERIFIED",
+  "programId": "oariw8YXcYJh9sa9VcmBU3ZCdo2WVGMYPsLjEuUxfrC",
   "builderImage": "quay.io/ottersec/anchor@sha256:54e9bbc858586177159b136ba757d52a84832f2fe98e64224a4e104f71cfbb4d",
   "builderNotes": "Tag v1.2.0, resolved 2026-10-04: anchor-cli 1.2.0, solana-cli 4.1.2 (Agave), cargo-build-sbf 4.1.0, platform-tools v1.54, rustc/cargo 1.98.1, Ubuntu 22.04.5",
-  "build": null,
-  "deployment": null,
-  "idl": null,
-  "smoke": null,
+  "build": {
+    "repo_sha": "9329e0d9b4f2a74efbc7d3e15612a9d83b30facc",
+    "program_id": "oariw8YXcYJh9sa9VcmBU3ZCdo2WVGMYPsLjEuUxfrC",
+    "builder_image": "quay.io/ottersec/anchor@sha256:54e9bbc858586177159b136ba757d52a84832f2fe98e64224a4e104f71cfbb4d",
+    "tool_versions": [
+      "rustc 1.98.1 (48a229cea 2026-09-01)",
+      "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+      "solana-cli 4.1.2 (src:182084b8; feat:c763ae0a, client:Agave)",
+      "anchor-cli 1.2.0",
+      "cargo-build-sbf 4.1.0",
+      "platform-tools v1.54"
+    ],
+    "artifact": "oar_registry.so",
+    "artifact_bytes": 175064,
+    "artifact_sha256": "e6112ffffdffb12817006ffe57856ad96d00f3ce84adb769baf126ddaaf37a5a",
+    "executable_hash": "1ecc93092bbd284e77dddb5b9318ac2c9ba6f4a9bedf0fafd45cdfebffe065ff",
+    "idl_sha256": "15ab03993488358f63a3ef4aeab9fc2017e2e3eed8badbab065f1e7723220057",
+    "double_build_match": true,
+    "built_at": "2026-10-04T05:53:18.311Z",
+    "ci_run_url": "https://github.com/gwapupward-hub/oar/actions/runs/37180654499"
+  },
+  "deployment": {
+    "mode": "fresh",
+    "programDataAddress": "BoDE8nY9kcmLqbZCQZW6gfjzTJhcDzU7FB1ZWmUqM72d",
+    "slot": 507319507,
+    "previousSlot": null,
+    "dataLen": 175064,
+    "signature": "24Ud958TRnhNNKWnriC4gJnVeFPkL4JAawX2PS2EgLN6WrBnEnhPijbLCXc3XGSTxdcMysJnFSzFwBbcLX2RQkUZ",
+    "upgradeAuthority": "2iceQADt8dJwpRLqoszVTcnRVnPUfBFtKxMTuqvWoovr",
+    "feePayer": "91N96ZPGHcFWe2jEZie9rUVqyHF5BWMV7mYnHMurhWB7",
+    "onchainExecutableHash": "1ecc93092bbd284e77dddb5b9318ac2c9ba6f4a9bedf0fafd45cdfebffe065ff",
+    "solanaVerifyProgramHash": "1ecc93092bbd284e77dddb5b9318ac2c9ba6f4a9bedf0fafd45cdfebffe065ff",
+    "hashVerified": true,
+    "operatorCheckout": "9329e0d9b4f2a74efbc7d3e15612a9d83b30facc",
+    "solanaCli": "3.1.10",
+    "solanaVerify": "0.5.2",
+    "rpcHost": "api.devnet.solana.com",
+    "deployedAt": "2026-10-04T09:33:55.161Z"
+  },
+  "idl": {
+    "seed": "idl",
+    "sha256": "15ab03993488358f63a3ef4aeab9fc2017e2e3eed8badbab065f1e7723220057",
+    "verified": true,
+    "programMetadataCli": "0.10.0",
+    "publishedBy": "2iceQADt8dJwpRLqoszVTcnRVnPUfBFtKxMTuqvWoovr",
+    "publishedAt": "2026-10-04T09:45:36.921Z"
+  },
+  "smoke": {
+    "evidence": "release/evidence/devnet-smoke-2026-10-04-oariw8YX.json",
+    "pass": true,
+    "appId": "33L4fdKedbumTLHpzqcyskWu6pSE6WXh3pYQGioYuMBf",
+    "at": "2026-10-04T09:47:23.513Z"
+  },
   "history": []
 }

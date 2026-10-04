@@ -1,0 +1,26 @@
+{
+  "release_id": "oar-registry-devnet-9329e0d9b4f2",
+  "system": "OAR",
+  "repo": "gwapupward-hub/oar",
+  "repo_sha": "9329e0d9b4f2a74efbc7d3e15612a9d83b30facc",
+  "environment": "solana:devnet",
+  "artifact": "target/deploy/oar_registry.so",
+  "artifact_sha256": "e6112ffffdffb12817006ffe57856ad96d00f3ce84adb769baf126ddaaf37a5a",
+  "tests": [
+    "CI https://github.com/gwapupward-hub/oar/actions/runs/37180654499: rustfmt, clippy -D warnings, cargo test --locked, IDL drift, identical double build, SDK LiteSVM suite on this binary",
+    "Devnet smoke passed: release/evidence/devnet-smoke-2026-10-04-oariw8YX.json"
+  ],
+  "security_gates": [
+    "Identity/secret source scan (scripts/check-release.mjs)",
+    "Exposed reference program ID refused by source checks and CLI",
+    "Program ID, upgrade authority and fee payer are distinct keys",
+    "Independent security review: NOT DONE (mainnet gate)"
+  ],
+  "deployed_target": "oariw8YXcYJh9sa9VcmBU3ZCdo2WVGMYPsLjEuUxfrC (ProgramData BoDE8nY9kcmLqbZCQZW6gfjzTJhcDzU7FB1ZWmUqM72d, slot 507319507)",
+  "deployed_hash": "1ecc93092bbd284e77dddb5b9318ac2c9ba6f4a9bedf0fafd45cdfebffe065ff",
+  "idl_or_interface_evidence": [
+    "Program Metadata seed \"idl\" matches idl/oar_registry.json sha256 15ab03993488358f63a3ef4aeab9fc2017e2e3eed8badbab065f1e7723220057"
+  ],
+  "status": "DEVNET_VERIFIED",
+  "blockers": []
+}
