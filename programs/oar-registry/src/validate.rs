@@ -33,7 +33,10 @@ mod tests {
     #[test]
     fn accepts_typical_uris() {
         assert!(validate_uri("ar://bNbA3TEQVL60xlgCcqdz4ZPHFZ711cZ3hmkpGttDt_U").is_ok());
-        assert!(validate_uri("ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi").is_ok());
+        assert!(
+            validate_uri("ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi")
+                .is_ok()
+        );
         assert!(validate_uri("https://gwapspot.fun/oar.json").is_ok());
         assert!(validate_uri(&"a".repeat(MAX_URI_LEN)).is_ok());
     }
@@ -45,14 +48,26 @@ mod tests {
             code(validate_uri(&"a".repeat(MAX_URI_LEN + 1))),
             6000 + OarError::UriTooLong as u32
         );
-        for bad in ["https://x.y/a b", "https://x.y/\n", "https://x.y/é", "\u{7f}"] {
-            assert_eq!(code(validate_uri(bad)), 6000 + OarError::UriInvalidChar as u32, "{bad:?}");
+        for bad in [
+            "https://x.y/a b",
+            "https://x.y/\n",
+            "https://x.y/é",
+            "\u{7f}",
+        ] {
+            assert_eq!(
+                code(validate_uri(bad)),
+                6000 + OarError::UriInvalidChar as u32,
+                "{bad:?}"
+            );
         }
     }
 
     #[test]
     fn rejects_zero_hash() {
-        assert_eq!(code(validate_hash(&[0u8; 32])), 6000 + OarError::ZeroManifestHash as u32);
+        assert_eq!(
+            code(validate_hash(&[0u8; 32])),
+            6000 + OarError::ZeroManifestHash as u32
+        );
         let mut h = [0u8; 32];
         h[31] = 1;
         assert!(validate_hash(&h).is_ok());
