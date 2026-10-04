@@ -25,7 +25,9 @@
     "devnet:preflight": "node scripts/devnet/preflight.mjs",
     "devnet:deploy": "node scripts/devnet/deploy.mjs",
     "devnet:idl": "node scripts/devnet/publish-idl.mjs",
-    "devnet:smoke": "node scripts/devnet/smoke.mjs"
+    "devnet:smoke": "node scripts/devnet/smoke.mjs",
+    "devnet:oar-app": "node scripts/devnet/oar-app.mjs",
+    "devnet:sas": "node scripts/devnet/sas-rehearsal.mjs"
   },
   "devDependencies": {
     "@codama/nodes-from-anchor": "^1.5.6",

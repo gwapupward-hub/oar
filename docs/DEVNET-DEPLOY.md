@@ -153,24 +153,64 @@ When the hash, IDL and smoke checks have all passed, `release/devnet.json` shows
 
 The GWAP record follows GWAP MASTER `schemas/release-record.schema.json`. Its JSON is valid YAML, so it can be appended to `registries/RELEASE_REGISTRY.yaml` as is.
 
-## Optional: register OAR itself (end-to-end link proof)
+## 9. Register OAR itself (end-to-end link proof)
 
-1. Derive the App ID: `node packages/cli/dist/index.js app-id --creator <PAYER_PUBKEY> --nonce 0`.
-2. Create the manifest: `oar init --app <APP_ID> -c devnet -o release/devnet/oar.manifest.json`.
-3. Edit the manifest:
-   - set `name` and `summary`;
-   - set `categories` to `["infrastructure", "identity"]`;
-   - set `programs` to `[{ "address": "<PROGRAM_ID>", "cluster": "solana:devnet", "name": "OAR Registry", "role": "registry" }]`;
-   - set `repositories` to `[{ "url": "https://github.com/gwapupward-hub/oar", "role": "program" }]`;
-   - remove the placeholder domain.
+OAR's own App ID on devnet is `Bu1JCyxiVDdDGjtNLLkKhq6KZv6E4LcUgqNkS5t5Nf2K`. It is derived from the devnet fee payer `91N96Z…` with nonce 0. Its manifest (`release/devnet/oar.manifest.json`) claims the OAR program and this repository. `oar.json` at the repo root is the repository proof.
 
-   Then run `oar validate`.
-4. Commit it to `main`. Then register with the commit-pinned URI:
-   `oar register -m release/devnet/oar.manifest.json --uri https://raw.githubusercontent.com/gwapupward-hub/oar/<COMMIT>/release/devnet/oar.manifest.json -k $K/devnet-payer.json -c devnet -u $RPC`.
-5. Write the program backlink as the upgrade authority:
-   `oar link-file --app <APP_ID> -c devnet -o /tmp/oar-link.json`, then
-   `npx program-metadata write oar $ID /tmp/oar-link.json --format json -k $K/devnet-upgrade-authority.json -p $K/devnet-payer.json --rpc $RPC`.
-6. Check the link: `oar resolve-program $ID -c devnet -u $RPC` must report `link verified`.
+`npm run devnet:oar-app -- prepare` regenerates both files from `release/devnet.json`. Both files are already committed.
+
+**Prerequisite:** the repository must be **public**. Wallets fetch the manifest and `oar.json` from raw.githubusercontent.com without credentials.
+
+```bash
+npm run devnet:oar-app -- publish --payer $K/devnet-payer.json \
+  --upgrade-authority $K/devnet-upgrade-authority.json --rpc $RPC --confirm Bu1JCyxiVDdDGjtNLLkKhq6KZv6E4LcUgqNkS5t5Nf2K
+```
+
+Before any transaction, `publish` checks that:
+- the RPC is devnet and the recorded deployment is verified;
+- the payer derives the committed App ID;
+- the upgrade authority matches the one on-chain;
+- the commit-pinned manifest URL serves bytes with the committed hash (fetched through the SDK, the same transport wallets use);
+- `oar.json` is served from the default branch.
+
+Then it:
+1. Registers the App ID. If an identical record already exists, it skips this step; a record with a different manifest stops the run.
+2. Writes the program's canonical `oar` backlink, signed by the upgrade authority. A backlink that names something else stops the run.
+3. Resolves the program as a wallet would. It requires `link verified`, manifest `ok`, status `Active`, and the program and repository claims both `verified`.
+
+Evidence goes to `release/evidence/devnet-oar-app-<date>-<id>.json` and `oarApp` in `release/devnet.json`. The cost is about 0.004 SOL of record rent plus the metadata account rent.
+
+## 10. SAS compatibility rehearsal
+
+This rehearses issuer evidence against the real Solana Attestation Service on devnet. Create a dedicated **issuer** key and fund it with about 0.05 SOL:
+
+```bash
+solana-keygen new -o $K/devnet-sas-issuer.json
+npm run devnet:sas -- --payer $K/devnet-payer.json --issuer $K/devnet-sas-issuer.json --rpc $RPC --confirm devnet
+```
+
+**Setup:**
+- It creates a TEST credential `oar-devnet-rehearsal` and the `oar-domain`, `oar-repo` and `oar-program` schemas. Each schema is created as v1 (the legacy shape without cluster binding), then moved to v2 with the exact SDK layout.
+- These steps are idempotent on re-runs.
+- It registers a throwaway app that claims `example.com`, this repository and the devnet Memo program. The SDK reads that app's manifest through an injected fetch, and still checks it against the on-chain hash.
+
+**What must hold** (every case is judged by the SDK):
+- Each v2 schema matches the SDK layout.
+- With no evidence, every claim is unverified.
+- These are rejected:
+  - a wrong subject or a wrong app cluster: `mismatch`;
+  - domain method 2 or program method 1: `invalid`;
+  - an expiry beyond the TTL, or a zero expiry: `invalid`, or SAS refuses it.
+- v1 evidence is ignored. Mainnet program evidence does not count on devnet but is valid in its own context.
+- Valid evidence is ignored from an untrusted issuer, and shows as `attested` from the trusted credential.
+- Pausing a schema fails closed for its claims only; unpausing restores them.
+- A revoked (closed) attestation drops back to unverified.
+
+**Cleanup:** every rehearsal attestation is closed and its rent returned, and the throwaway app is retired. The credential and schemas remain as a documented TEST issuer.
+
+Evidence goes to `release/evidence/devnet-sas-rehearsal-<date>-<credential>.json` and `sas` in `release/devnet.json`.
+
+The scripts' expectations are also unit-tested offline (`npm run test:devnet`), using accounts built with the pinned `sas-lib` encoders.
 
 ## Upgrades on devnet
 
