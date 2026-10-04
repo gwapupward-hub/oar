@@ -24,7 +24,8 @@ function fakeRpc(accounts) {
 
 async function world() {
   const creator = (await generateKeyPairSigner()).address;
-  const credential = (await generateKeyPairSigner()).address;
+  const issuer = (await generateKeyPairSigner()).address;
+  const [credential] = await sas.deriveCredentialPda({ authority: issuer, name: 'oar-devnet-rehearsal' });
   const nonce = 7n;
   const appId = await s.findAppId({ creator, nonce });
   const [, bump] = await s.findAppRecordPda({ creator, nonce });
@@ -39,6 +40,10 @@ async function world() {
   const padded = new Uint8Array(s.APP_RECORD_SIZE);
   padded.set(record);
   accounts.set(appId, { owner: s.OAR_PROGRAM_ID, data: padded });
+  // SAS account discriminators (upstream): Credential 0, Schema 1, Attestation 2.
+  accounts.set(credential, { owner: s.SAS_PROGRAM_ID, data: Uint8Array.from(sas.getCredentialEncoder().encode({
+    discriminator: 0, authority: issuer, name: new TextEncoder().encode('oar-devnet-rehearsal'), authorizedSigners: [issuer],
+  })) });
 
   const schemas = {};
   const putSchema = async (name, version, paused = false) => {
@@ -64,7 +69,7 @@ async function world() {
     const p = { ...payload({ kind, appIdBytes: enc.encode(appId), subject: c.subject, subjectBytes: kind === 'program' ? enc.encode(c.subject) : undefined, programCluster, checkedAt }), ...data };
     const fields = Object.fromEntries(def.fields.map(f => [f, p[f]]));
     accounts.set(address, { owner: s.SAS_PROGRAM_ID, data: Uint8Array.from(sas.getAttestationEncoder().encode({
-      discriminator: 2, nonce: attNonce, credential, schema, data: encodeData(sas, def, fields), signer: credential,
+      discriminator: 2, nonce: attNonce, credential, schema, data: encodeData(sas, def, fields), signer: issuer,
       expiry, tokenAccount: '11111111111111111111111111111111',
     })) });
     return address;
