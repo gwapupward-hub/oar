@@ -8,8 +8,8 @@
     "freshBinaryTests": null,
     "dependencyReview": null,
     "independentReview": null,
-    "devnetRehearsal": null,
-    "sasCompatibility": null,
+    "devnetRehearsal": "release/devnet.json",
+    "sasCompatibility": "release/evidence/devnet-sas-rehearsal-2026-10-04-GFHnocWS.json",
     "governance": null,
     "operations": null
   }

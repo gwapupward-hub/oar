@@ -8,7 +8,9 @@
   "artifact_sha256": "e6112ffffdffb12817006ffe57856ad96d00f3ce84adb769baf126ddaaf37a5a",
   "tests": [
     "CI https://github.com/gwapupward-hub/oar/actions/runs/37180654499: rustfmt, clippy -D warnings, cargo test --locked, IDL drift, identical double build, SDK LiteSVM suite on this binary",
-    "Devnet smoke passed: release/evidence/devnet-smoke-2026-10-04-oariw8YX.json"
+    "Devnet smoke passed: release/evidence/devnet-smoke-2026-10-04-oariw8YX.json",
+    "OAR self-registration passed (App ID Bu1JCyxiVDdDGjtNLLkKhq6KZv6E4LcUgqNkS5t5Nf2K): release/evidence/devnet-oar-app-2026-10-04-Bu1JCyxi.json",
+    "SAS attestation rehearsal passed (TEST credential GFHnocWSaJBAVwfrT4yuzGA1QkGFuA5Eg7NUWcSQ8yUK): release/evidence/devnet-sas-rehearsal-2026-10-04-GFHnocWS.json"
   ],
   "security_gates": [
     "Identity/secret source scan (scripts/check-release.mjs)",

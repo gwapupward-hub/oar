@@ -36,6 +36,8 @@ export function gwapRecord(r) {
     tests: [
       b.ci_run_url && `CI ${b.ci_run_url}: rustfmt, clippy -D warnings, cargo test --locked, IDL drift, identical double build, SDK LiteSVM suite on this binary`,
       r.smoke?.evidence && `Devnet smoke ${r.smoke.pass ? 'passed' : 'FAILED'}: ${r.smoke.evidence}`,
+      r.oarApp?.evidence && `OAR self-registration ${r.oarApp.pass ? 'passed' : 'FAILED'} (App ID ${r.oarApp.appId}): ${r.oarApp.evidence}`,
+      r.sas?.evidence && `SAS attestation rehearsal ${r.sas.pass ? 'passed' : 'FAILED'} (TEST credential ${r.sas.credential}): ${r.sas.evidence}`,
     ].filter(Boolean),
     security_gates: [
       'Identity/secret source scan (scripts/check-release.mjs)',

@@ -1,0 +1,45 @@
+{
+  "appId": "Bu1JCyxiVDdDGjtNLLkKhq6KZv6E4LcUgqNkS5t5Nf2K",
+  "creator": "91N96ZPGHcFWe2jEZie9rUVqyHF5BWMV7mYnHMurhWB7",
+  "nonce": 0,
+  "uri": "https://raw.githubusercontent.com/gwapupward-hub/oar/2b393297d528857d59050fe7686dedecfb884fa9/release/devnet/oar.manifest.json",
+  "manifestSha256": "6ab833dc54c3d75f092c01881e2502237163c0d9ec7a255efd7b980eb6091a24",
+  "commit": "2b393297d528857d59050fe7686dedecfb884fa9",
+  "steps": [
+    {
+      "step": "register",
+      "signature": "5Mu6M7cRdCgkH8XNRFL563ng3fQKtfUQ5oHokpoKpGjeBH8eMEFUjbnyWbF6By4qvzjk1vPeRf2QUUD3YTJhRfpn"
+    },
+    {
+      "step": "backlink",
+      "metadata": "DcR5mKvm8ewoK9WJKv6oKMygG8Jbi8TEqQyMe5LfPZ9g",
+      "output": [
+        " ├─ metadata: DcR5mKvm8ewoK9WJKv6oKMygG8Jbi8TEqQyMe5LfPZ9g",
+        " ├─ program: oariw8YXcYJh9sa9VcmBU3ZCdo2WVGMYPsLjEuUxfrC",
+        " └─ seed: oar"
+      ]
+    }
+  ],
+  "resolved": {
+    "link": "verified",
+    "manifest": "ok",
+    "status": "Active",
+    "programs": [
+      {
+        "subject": "oariw8YXcYJh9sa9VcmBU3ZCdo2WVGMYPsLjEuUxfrC",
+        "state": "verified",
+        "method": "program-metadata"
+      }
+    ],
+    "repositories": [
+      {
+        "subject": "https://github.com/gwapupward-hub/oar",
+        "state": "verified",
+        "method": "repo-file"
+      }
+    ]
+  },
+  "pass": true,
+  "at": "2026-10-04T15:35:54.867Z",
+  "rpcHost": "api.devnet.solana.com"
+}

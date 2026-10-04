@@ -57,7 +57,47 @@ Evidence: `release/devnet.json`, `release/evidence/devnet-smoke-2026-10-04-oariw
 | IDL | Program Metadata seed `idl`, signed by the upgrade authority; read back and equal to `idl/oar_registry.json` (SHA-256 `15ab0399…220057`) |
 | Smoke | 13/13 checks passed: 6 expected successes (register 8,484 CU; other instructions 3,408–4,063 CU) and 6 expected errors (`Unauthorized`, `NoPendingAuthority`, `AppRetired`, duplicate nonce). The final record is Retired, with the new authority and revision 1 |
 
-The deploy used Agave CLI 3.1.10 on the operator machine; the build used 4.1.2 inside the pinned builder. Mainnet remains NO-GO on the gates below. Devnet does not exercise the Squads upgrade governance, SAS issuance or a dedicated RPC.
+The deploy used Agave CLI 3.1.10 on the operator machine; the build used 4.1.2 inside the pinned builder. Mainnet remains NO-GO on the gates below. Devnet does not exercise the Squads upgrade governance or a dedicated RPC. SAS issuance was rehearsed separately (next section).
+
+## Devnet rehearsals — October 4, 2026
+
+Evidence: the `oarApp` and `sas` blocks of `release/devnet.json`, `release/evidence/devnet-oar-app-2026-10-04-Bu1JCyxi.json` and `release/evidence/devnet-sas-rehearsal-2026-10-04-GFHnocWS.json`. `release/production.json` now points `devnetRehearsal` and `sasCompatibility` at them.
+
+**OAR self-registration** (`npm run devnet:oar-app`), an end-to-end link proof:
+
+| Item | Value |
+| --- | --- |
+| App ID | `Bu1JCyxiVDdDGjtNLLkKhq6KZv6E4LcUgqNkS5t5Nf2K` (creator = fee payer `91N96Z…hWB7`, nonce 0); register signature `5Mu6M7cR…JhRfpn` |
+| Manifest | `release/devnet/oar.manifest.json` served from the commit-pinned raw GitHub URL at `2b39329`; canonical SHA-256 `6ab833dc…091a24` equals the onchain hash |
+| Program backlink | Program Metadata seed `oar` at the canonical account `DcR5mKvm8ewoK9WJKv6oKMygG8Jbi8TEqQyMe5LfPZ9g`, written by the upgrade authority |
+| Resolution | `resolve-program`: link verified. `inspect`: manifest ok, Active, program verified (Program Metadata), repository verified (`oar.json` repo file) |
+
+**SAS attestation rehearsal** (`npm run devnet:sas`), with a TEST issuer:
+
+| Item | Value |
+| --- | --- |
+| SAS | Program `22zoJMtdu4tQc2PzL74ZUT7FrwgB1Udec8DdW4yw4BdG`, `sas-lib` 1.0.10 |
+| Credential | `oar-devnet-rehearsal` at `GFHnocWSaJBAVwfrT4yuzGA1QkGFuA5Eg7NUWcSQ8yUK`. Its issuer `6d16rG1k…SBbBN` is a fourth devnet key, distinct from the program, the upgrade authority and the fee payer. TEST only: no client should trust it |
+| Schemas | `oar-domain`, `oar-repo` and `oar-program`, each created at v1 and moved to v2 with `changeSchemaVersion`. The v2 layouts, field names and versions equal the SDK `OAR_SCHEMAS` |
+| Cases | 21/21 passed, each judged through the SDK (`resolveApp`, `fetchClaimAttestation`) against a throwaway app; listed below |
+| Cleanup | 33 transactions. Every rehearsal attestation was closed (none open) and the throwaway app `DFMTKams…c43wF` was retired. The credential and schemas stay as a documented TEST issuer |
+
+The 21 cases:
+
+- the three v2 schemas match the SDK;
+- no evidence → unverified;
+- wrong subject or wrong app cluster → mismatch, and the claim is not shown;
+- unsupported domain method, non-canonical program method, expiry beyond the TTL, zero expiry → invalid;
+- v1-schema evidence is not looked up;
+- mainnet program evidence does not count on devnet, but is valid in its own context;
+- an untrusted issuer is ignored (default empty trust list); the trusted credential → attested;
+- a paused schema fails closed for its own claims only, and is accepted again once unpaused;
+- revocation (close) → none → unverified.
+
+Limits:
+
+- The rehearsal used the SDK as it was on `main` before the credential-signer check (OAR-IR-01) was added. Every attestation it judged `attested` was signed by the credential's only authorized signer, so that check would not change the outcome. Signer removal is covered by LiteSVM regression tests, not by this run.
+- It proves OAR's SAS semantics with a TEST credential. No production issuer is provisioned, and the default trust list stays empty.
 
 ## Remaining deployment blockers and owners
 

@@ -1,0 +1,328 @@
+{
+  "cluster": "solana:devnet",
+  "rpcHost": "api.devnet.solana.com",
+  "at": "2026-10-04T15:39:14.088Z",
+  "pass": true,
+  "programId": "oariw8YXcYJh9sa9VcmBU3ZCdo2WVGMYPsLjEuUxfrC",
+  "sasProgram": "22zoJMtdu4tQc2PzL74ZUT7FrwgB1Udec8DdW4yw4BdG",
+  "sasLib": "1.0.10",
+  "issuer": "6d16rG1kUt2g6nkzZsfZfoxdKR52WkD34mD3SX3SBbBN",
+  "credential": "GFHnocWSaJBAVwfrT4yuzGA1QkGFuA5Eg7NUWcSQ8yUK",
+  "credentialName": "oar-devnet-rehearsal",
+  "schemas": {
+    "oar-domain": {
+      "v1": "9GbY6MTL7QkQcwLWjjtc7PNqPSXR1qKmNf35Jr1ZBoYA",
+      "v2": "1257GP6ybGmfvYKNAtneepZW5YRFyHtsSUzbuitdLd4k"
+    },
+    "oar-repo": {
+      "v1": "6RwXWNHLzhULKm5uvaX7NhRjsJ35mi6iq3ZHixUqQ7YQ",
+      "v2": "5yLhs1NnuHuD22SL647VhrfVxAD3tce1LCdJWbngcUjW"
+    },
+    "oar-program": {
+      "v1": "38QoK19sPWUFULiwjNPTYWGyjnrBbV5byTFwwt6nyogh",
+      "v2": "28SRX6Qm5qNfEfWkAqvi6DdfHMKhds8vhmLciq1Txp8i"
+    }
+  },
+  "testApp": {
+    "appId": "DFMTKamsDw1etiLHZ8v8h2DkLTVDwmSQTWdyhDZc43wF",
+    "nonce": "1791128217892",
+    "uri": "https://example.com/oar-sas-rehearsal/1791128217892.json",
+    "manifestSha256": "aa8280a925b7142d687ddf92b3b7d8ba4f2fa7a88b43154e5ed1cc2758458fdb"
+  },
+  "results": [
+    {
+      "case": "oar-domain v2 schema matches the SDK layout, field names and version",
+      "pass": true,
+      "expected": true,
+      "observed": true
+    },
+    {
+      "case": "oar-repo v2 schema matches the SDK layout, field names and version",
+      "pass": true,
+      "expected": true,
+      "observed": true
+    },
+    {
+      "case": "oar-program v2 schema matches the SDK layout, field names and version",
+      "pass": true,
+      "expected": true,
+      "observed": true
+    },
+    {
+      "case": "no evidence: every claim unverified",
+      "pass": true,
+      "expected": {
+        "domain": "unverified",
+        "repo": "unverified",
+        "program": "unverified"
+      },
+      "observed": {
+        "domain": "unverified",
+        "repo": "unverified",
+        "program": "unverified"
+      }
+    },
+    {
+      "case": "wrong subject at the correct address -> mismatch",
+      "pass": true,
+      "expected": "mismatch",
+      "observed": "mismatch"
+    },
+    {
+      "case": "mismatched evidence is not shown",
+      "pass": true,
+      "expected": "unverified",
+      "observed": "unverified"
+    },
+    {
+      "case": "wrong app cluster -> mismatch",
+      "pass": true,
+      "expected": "mismatch",
+      "observed": "mismatch"
+    },
+    {
+      "case": "unsupported domain method -> invalid",
+      "pass": true,
+      "expected": "invalid",
+      "observed": "invalid"
+    },
+    {
+      "case": "non-canonical program method -> invalid",
+      "pass": true,
+      "expected": "invalid",
+      "observed": "invalid"
+    },
+    {
+      "case": "expiry beyond TTL -> invalid",
+      "pass": true,
+      "expected": "invalid",
+      "observed": "invalid"
+    },
+    {
+      "case": "zero expiry is never accepted",
+      "pass": true,
+      "expected": true,
+      "observed": true
+    },
+    {
+      "case": "v1-schema evidence is not looked up",
+      "pass": true,
+      "expected": "none",
+      "observed": "none"
+    },
+    {
+      "case": "mainnet program evidence does not count on devnet",
+      "pass": true,
+      "expected": "none",
+      "observed": "none"
+    },
+    {
+      "case": "mainnet program evidence is valid in its own context",
+      "pass": true,
+      "expected": "valid",
+      "observed": "valid"
+    },
+    {
+      "case": "valid evidence from an untrusted issuer is ignored (default empty trust list)",
+      "pass": true,
+      "expected": {
+        "domain": "unverified",
+        "repo": "unverified",
+        "program": "unverified"
+      },
+      "observed": {
+        "domain": "unverified",
+        "repo": "unverified",
+        "program": "unverified"
+      }
+    },
+    {
+      "case": "valid evidence from the trusted credential -> attested",
+      "pass": true,
+      "expected": {
+        "domain": "attested",
+        "repo": "attested",
+        "program": "attested"
+      },
+      "observed": {
+        "domain": "attested",
+        "repo": "attested",
+        "program": "attested"
+      }
+    },
+    {
+      "case": "paused schema fails closed",
+      "pass": true,
+      "expected": "invalid",
+      "observed": "invalid"
+    },
+    {
+      "case": "paused schema only affects its own claims",
+      "pass": true,
+      "expected": {
+        "domain": "unverified",
+        "repo": "attested",
+        "program": "attested"
+      },
+      "observed": {
+        "domain": "unverified",
+        "repo": "attested",
+        "program": "attested"
+      }
+    },
+    {
+      "case": "unpaused schema is accepted again",
+      "pass": true,
+      "expected": "valid",
+      "observed": "valid"
+    },
+    {
+      "case": "revoked evidence -> none",
+      "pass": true,
+      "expected": "none",
+      "observed": "none"
+    },
+    {
+      "case": "revoked claim drops back to unverified",
+      "pass": true,
+      "expected": "unverified",
+      "observed": "unverified"
+    }
+  ],
+  "transactions": [
+    {
+      "label": "create credential",
+      "signature": "knXVFn1vwp7UiX5fG6zYcmYj88d6af6NdpwH8P9k8srsxhQSEAtPzK7shaj28BMAoiRQiCxUAFJ2nKWyzPSBD1v"
+    },
+    {
+      "label": "create oar-domain v1",
+      "signature": "4BKzMi65kK44Lb35JMpaSyjpHb2NDpzsSnus3PEcTDXwnxmHS5ag4m2sUZ2ZVC47WamkwPCWAcoCGEWutpA6uqzF"
+    },
+    {
+      "label": "create oar-domain v2",
+      "signature": "2N4TUz4FtEuecegbPkwL33Qhx3fqioJPLHztbR14HoCwDm63HVfnsL8uLXTqbHQxyMDQ5wJqikmFjzWxb8Kg51Nv"
+    },
+    {
+      "label": "create oar-repo v1",
+      "signature": "3CLvWMsxBuBEGyuf84W5oKjLC5YhfwRzgGkK26wu6qWgAFAcb2LH2pZvoJDW4KU21YjUEs5JNFurggxrDvSPWuNp"
+    },
+    {
+      "label": "create oar-repo v2",
+      "signature": "2WTvc9w9xzHUVHEdeAz3ZmCLozDYR3pc9NT5rC58bDP63mvc2wfYsHGYkc98E7C7yxg99vzcnsipd356Po9b2c6s"
+    },
+    {
+      "label": "create oar-program v1",
+      "signature": "3kjxgX8PVbPfY8E9sWCVkcpUQC568FpL7ZMSaV9LTzrco82eWhN61UxJ78YUv9p525stjZwwCKwQEMRExwnrQGYR"
+    },
+    {
+      "label": "create oar-program v2",
+      "signature": "enD4ZpCvQFopic3onkTkaDBpqXNDDE1mX3NKG63Uo5dFUXuCXkDmiJnEnGoGAqDwQbXAH9Weneg3G6o6duoJdie"
+    },
+    {
+      "label": "register throwaway app",
+      "signature": "4FmqstQdKyZGisraoVXaHjCym62JyomJsg4Cw7dWudHUPiphYwqpNuA479uWzJFFNCp5aKwUSbTXpRh8WzoKEBNt"
+    },
+    {
+      "label": "domain evidence naming another host",
+      "signature": "27HUGVAtLTSuskDhri3ZtNUGDHyghw24ZXFhgA3LQMgDPTKfxzNqnQLYWQudT1zP4ZCxw5HSMJjkxTbA3dnejVh2"
+    },
+    {
+      "label": "close mismatched domain evidence",
+      "signature": "48C31FEcv6qzHZtvS4fToKtTS2wNKNtnbtjtUgQH3ZSyDxFpMzJjHgB7xnTmkSyTMyeWN5Fd3BBU6fLhWHnnRJsS"
+    },
+    {
+      "label": "repo evidence bound to mainnet",
+      "signature": "xYqTVDj2ecNMsGYeyCdX4RMg7shZ8xrYdiVwsbaudMGnJDz1ViXUhbt3GCQahpF2HzubomjJjAcFXop52mEQdX5"
+    },
+    {
+      "label": "close cross-cluster repo evidence",
+      "signature": "my4zAYNcwzWc2Xz1V41Zskb274KEaQuyGNb6urjt7KQM9QP4zkMb2B1GVeyn33YQ2iaNBrQtELoybExV9G1XCwr"
+    },
+    {
+      "label": "domain evidence with method 2",
+      "signature": "2d6nfmLz36oSWYHgHYTyr3EArVhFjrW8BWjzSat5Liy3pVMkmevq5rJYJb9vVeeyrV7kfk6yrjdcvqhfRGidxbqi"
+    },
+    {
+      "label": "close method-2 domain evidence",
+      "signature": "2waLimFM2cMq6v9CNCuNKuLmFVNyKieEcEXrLDaFfYsgCgkjaYTt1m2fWbMYsSs2qhehh6Tct212UqppwzEDEtWf"
+    },
+    {
+      "label": "program evidence with method 1",
+      "signature": "2tHTwSp44RSZN7g5CtoFtW2QXuF9nr4nBALHrjVZgKP8ZxYqTL4QkPazybaktxwyzEgYZMUH1BN5hmMV7AVN4Cun"
+    },
+    {
+      "label": "close method-1 program evidence",
+      "signature": "q8xgfXoMy4yUTdKKPFK9HQMdDV76jZt6hwm8b2Mqcuqwj6Xd1GiWXKtFnWH6YYgG8jV8yrB3reVsPhSx5DDoekY"
+    },
+    {
+      "label": "repo evidence expiring after the 30-day TTL",
+      "signature": "2x3L1SNkyJDfNy8ukQ2NbzjMdXBTqojVugQaeHYCWJrzLQJDiL6Ez1R8yCvXZfdcn8UkgNzP4XDMoRC7DN86uV1B"
+    },
+    {
+      "label": "close over-TTL repo evidence",
+      "signature": "3hRDBowdj1z4QJAjbKNmBgmQYphX9x7w5NuM7HESycUaoyKTV9b36s3QcTvYrs3s9pxkud1HLMXhZmHzC6WosvcK"
+    },
+    {
+      "label": "repo evidence with no expiry",
+      "signature": "2SUem1b2e6bbJTSWkrfe3C25ds1Un8h3sSsjg7qACLT5n4jzfCMouJLwmhcE1mxFNTih8Jt644Yf4qeFmnDKja9Y"
+    },
+    {
+      "label": "close no-expiry repo evidence",
+      "signature": "2anNuK9GfFidkaZSHQzasnGE4bzssYXnWGUqosYJzq9eBYffzDinwc8zDexo4cmk4WxFQAJywkLWwByDPQvRsWk7"
+    },
+    {
+      "label": "legacy v1 domain evidence",
+      "signature": "2iXig6k61sjBbDRJYpqft5GmNXQcMsXnXM57Gn6Tf4mfPK78F6LGv8gCwPXQzB1mqzFAjeY9yF8XXD9f31TXPFRL"
+    },
+    {
+      "label": "program evidence for the mainnet program cluster",
+      "signature": "4ej3WBF7UzzhXTYyD6kH8k4tPKfEyMFREqHDSkAAThL4EKZDGH5KCCFGyv92rt4T268GoPgq5F1XkSbSRFcZSSnJ"
+    },
+    {
+      "label": "valid domain evidence (DNS method)",
+      "signature": "3SvDtig2NNLUHFdifYdMk9iNvAiZKSu7GYpPMFEgUuPJS22fPtGQP5nfdK1vYmh2TvcGQQHbfFnbryiXLacUZGes"
+    },
+    {
+      "label": "valid repo evidence",
+      "signature": "XJ5vKzSci21hSKc78ecQmU7h2agu8AHhLPrWoynwZx5RzTtWdehX95K4gcxZpqLxfixjYQCYiHcVzFVmDBaMg1R"
+    },
+    {
+      "label": "valid program evidence",
+      "signature": "2YXrJ4ooFw4j96GXkLkyDGEnw26AUYpGLvWAkbXqHjLSQEFmD1qvdUZaeZBj1dEuxgrpEiSv6xt35SNjyL59CyHQ"
+    },
+    {
+      "label": "pause oar-domain v2",
+      "signature": "tmf79rRRohabuT4dtvGVSJUhXxK7SxGMhH7K9maj2jryo2tBDHSWfUqXYF1PebJLoqsSHKYvHktNhEbZcrkXFi5"
+    },
+    {
+      "label": "unpause oar-domain v2",
+      "signature": "HGxQo9noWJd3axUg5wwEauZp5bnf4mYJZkV3uYGbYsVQa9EVrJMHJtRLzoSmU59vPmFYUf6T8NbReXmNvD6LUy6"
+    },
+    {
+      "label": "revoke repo evidence",
+      "signature": "4pbxHnPchgB92M8GSSNV7hcBWoEjPsuDVfg7sMoyQGmqYksQg8vW3tdS4PmMpHJXi2ahQyRwxFuqtdZERXeoRmCZ"
+    },
+    {
+      "label": "cleanup: close evidence",
+      "signature": "5Tz1PGATLrNrJiuCfkcKsThYZsNKBMyKuPbfQ59T4EPT4EbkHs7utsmSrothqfj78ntazFAPkybdKNC7EhemHDis"
+    },
+    {
+      "label": "cleanup: close evidence",
+      "signature": "4Mert3zeLTw5mbJ8XumxRtoqS6sEboBQtde3n6KRrqk7Hn6NznChdAHSaNice3vPp6bQcuJGjmMSbkXDA59vSoNW"
+    },
+    {
+      "label": "cleanup: close evidence",
+      "signature": "4y4ZvD7ZntPd2ey1r4Pf7pTJXuUjGLje3iSQERqUzfVETXWbrcoYQUa9XAoRygKFr9azXFgTPHU6jiYiBSRsi95q"
+    },
+    {
+      "label": "cleanup: close evidence",
+      "signature": "z8QVdJCCDSwnnsTdGGMqLH4ed8ztRozPgR7zLZ9fHubTG3ZZZ6VXVMqBdazqrswuK4tathqMjUUCRVnHEGRpXUy"
+    },
+    {
+      "label": "retire throwaway app",
+      "signature": "5tmGWKtvLQXffDrZYeocFtQVVJfujf3DHXg7ZdLf3BhYL8XvMPjM53oXZ6FijuWhFU7AcQyMFJFjSyduyMqPiugP",
+      "ok": true
+    }
+  ],
+  "openAttestations": []
+}

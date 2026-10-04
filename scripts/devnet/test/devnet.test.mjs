@@ -163,6 +163,13 @@ test('release status needs hash, IDL and smoke evidence', () => {
   for (const k of ['release_id', 'system', 'repo', 'repo_sha', 'environment', 'status']) assert.ok(g[k], k);
   assert.deepEqual(g.blockers, []);
   assert.equal(g.deployed_hash, 'exe');
+  assert.equal(g.tests.length, 1);
+  r.oarApp = { appId: 'APP', pass: true, evidence: 'release/evidence/app.json' };
+  r.sas = { credential: 'CRED', pass: false, evidence: 'release/evidence/sas.json' };
+  const t = gwapRecord(r).tests;
+  assert.match(t[1], /^OAR self-registration passed \(App ID APP\): release\/evidence\/app\.json$/);
+  assert.match(t[2], /^SAS attestation rehearsal FAILED \(TEST credential CRED\): release\/evidence\/sas\.json$/);
+  assert.equal(deriveStatus(r), 'DEVNET_VERIFIED');
 });
 
 test('IDL comparison ignores key order and whitespace only', () => {
