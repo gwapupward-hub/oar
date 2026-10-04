@@ -14,8 +14,13 @@ for p in sorted(root.rglob('*')):
     if re.search(r'(keypair|wallet|secret|credential).*\.(json|pem|key)$',p.name,re.I) or p.name == 'id.json' or p.name.startswith('.env'): raise SystemExit(f'Forbidden path: {rel}')
     files.append(p)
 out.parent.mkdir(parents=True, exist_ok=True)
+# Reproducible: sorted entries, fixed timestamps and permissions, so the same tree always gives the same bytes.
 with zipfile.ZipFile(out,'w',zipfile.ZIP_DEFLATED) as z:
-    for p in files: z.write(p, 'open-app-registry/' + p.relative_to(root).as_posix())
+    for p in files:
+        info = zipfile.ZipInfo('open-app-registry/' + p.relative_to(root).as_posix(), date_time=(1980,1,1,0,0,0))
+        info.compress_type = zipfile.ZIP_DEFLATED
+        info.external_attr = (0o755 if p.stat().st_mode & 0o111 else 0o644) << 16
+        z.writestr(info, p.read_bytes(), compresslevel=9)
 with zipfile.ZipFile(out) as z:
     for name in z.namelist():
         if '..' in Path(name).parts: raise SystemExit('Unsafe archive path')

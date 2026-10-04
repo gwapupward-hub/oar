@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import {
+  DuplicateKeyError,
   buildProgramLink,
   buildProofFile,
   canonicalizeManifest,
@@ -11,6 +12,7 @@ import {
   hashManifest,
   hashManifestHex,
   manifestUriToUrl,
+  parseJsonStrict,
   validateManifest,
   validateProgramLink,
   validateProofFile,
@@ -77,4 +79,19 @@ test('manifest URI schemes map to gateways; others are refused', () => {
   assert.equal(manifestUriToUrl('ipfs://bafy'), 'https://ipfs.io/ipfs/bafy');
   assert.equal(manifestUriToUrl('https://a.b/c'), 'https://a.b/c');
   assert.throws(() => manifestUriToUrl('http://a.b/c'));
+});
+
+test('strict JSON parsing rejects repeated keys that JSON.parse would silently merge', () => {
+  // Same canonical hash, different meaning per parser: the reason duplicates are refused (OAR-IR-02).
+  assert.equal(hashManifestHex(JSON.parse('{"name":"Trusted Wallet","name":"Other"}')), hashManifestHex({ name: 'Other' }));
+  assert.throws(() => parseJsonStrict('{"name":"Trusted Wallet","name":"Other"}'), DuplicateKeyError);
+  assert.throws(() => parseJsonStrict('{"a":1,"\\u0061":2}'), /Duplicate JSON key "a"/, 'keys compare after unescaping');
+  assert.throws(() => parseJsonStrict('{"x":[{"a":1,"b":{"c":1,"c":2}}]}'), DuplicateKeyError, 'nested objects');
+  assert.throws(() => parseJsonStrict('{"__proto__":1,"__proto__":2}'), DuplicateKeyError);
+  assert.deepEqual(parseJsonStrict('{"a":{"a":1},"b":[{"a":1},{"a":2}],"c":"{\\"a\\":1,\\"a\\":2}"}'),
+    { a: { a: 1 }, b: [{ a: 1 }, { a: 2 }], c: '{"a":1,"a":2}' }, 'same key in sibling objects and inside strings is fine');
+  assert.deepEqual(parseJsonStrict(' [ "a" , { } , "a" ] '), ['a', {}, 'a']);
+  assert.throws(() => parseJsonStrict('{"a":1,}'), (e: unknown) => e instanceof SyntaxError && !(e instanceof DuplicateKeyError));
+  const manifest = readFileSync(join(root, 'examples/manifest.example.json'), 'utf8');
+  assert.deepEqual(parseJsonStrict(manifest), JSON.parse(manifest));
 });

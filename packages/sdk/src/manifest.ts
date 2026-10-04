@@ -6,6 +6,7 @@ import type { ErrorObject } from 'ajv';
 import { LIMITS, type Cluster } from './constants.js';
 import { manifestSchema, programLinkSchema, wellKnownSchema } from './schemas.js';
 import { readLimitedText } from './http.js';
+import { parseJsonStrict } from './json.js';
 
 export type Category =
   | 'defi' | 'dex' | 'lending' | 'payments' | 'wallet' | 'nft' | 'marketplace' | 'gaming' | 'social'
@@ -143,7 +144,10 @@ export function manifestUriToUrl(uri: string, opts: FetchManifestOptions = {}): 
   throw new Error(`Unsupported manifest URI scheme: ${uri}`);
 }
 
-/** Fetch and parse a manifest (size and time limited). Integrity is checked separately against the record. */
+/**
+ * Fetch and parse a manifest (size and time limited). Integrity is checked separately against the record.
+ * Throws DuplicateKeyError for a manifest that repeats a member name.
+ */
 export async function fetchManifest(uri: string, opts: FetchManifestOptions = {}): Promise<unknown> {
   const url = manifestUriToUrl(uri, opts);
   const text = await readLimitedText(url, {
@@ -152,7 +156,7 @@ export async function fetchManifest(uri: string, opts: FetchManifestOptions = {}
     timeoutMs: opts.timeoutMs ?? LIMITS.timeoutMs,
     maxRedirects: LIMITS.manifestRedirects,
   });
-  return JSON.parse(text);
+  return parseJsonStrict(text);
 }
 
 export type ManifestCheck =

@@ -77,5 +77,8 @@ export async function sendAndConfirm(
     if (status?.confirmationStatus === 'confirmed' || status?.confirmationStatus === 'finalized') return signature;
     await new Promise(r => setTimeout(r, 1500));
   }
-  throw new Error(`Timed out waiting for ${signature}`);
+  // The transaction can still land after this; a blind retry could, for example, bump an app's revision twice.
+  throw new Error(
+    `Timed out waiting for ${signature} after ${timeoutMs / 1000}s. It may still land: check it (solana confirm ${signature}) before retrying.`,
+  );
 }

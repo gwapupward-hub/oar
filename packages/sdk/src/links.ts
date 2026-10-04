@@ -17,6 +17,7 @@ import {
   type Cluster,
 } from './constants.js';
 import { withDeadline, HttpCheckError, readLimitedText } from './http.js';
+import { DuplicateKeyError, parseJsonStrict } from './json.js';
 import { validateProgramLink, validateProofFile, type ProgramLink, type ProofFile } from './manifest.js';
 
 /** Result of one live link-proof check. */
@@ -72,9 +73,10 @@ export async function fetchProgramBacklink(
       else throw new Error('Unsupported compression');
     }
     if (content.length > LIMITS.proofBytes) throw new Error('Backlink too large');
-    parsed = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(content));
-  } catch {
-    return { status: 'invalid', metadataAddress, reason: 'backlink content is not JSON' };
+    parsed = parseJsonStrict(new TextDecoder('utf-8', { fatal: true }).decode(content));
+  } catch (e) {
+    const reason = e instanceof DuplicateKeyError ? `backlink: ${e.message}` : 'backlink content is not JSON';
+    return { status: 'invalid', metadataAddress, reason };
   }
   const v = validateProgramLink(parsed);
   if (!v.valid) return { status: 'invalid', metadataAddress, reason: `backlink schema: ${v.errors.join('; ')}` };
@@ -135,7 +137,7 @@ export async function checkDomain(
       timeoutMs: opts.timeoutMs ?? LIMITS.timeoutMs,
       maxRedirects: 0,
     });
-    const parsed: unknown = JSON.parse(text);
+    const parsed: unknown = parseJsonStrict(text);
     const v = validateProofFile(parsed);
     if (!v.valid) notes.push(`well-known file invalid: ${v.errors.join('; ')}`);
     else if (proofNames(parsed as ProofFile, appId, cluster) === 'match') return { state: 'verified', method: 'well-known' };
@@ -199,7 +201,7 @@ export async function checkRepository(
       timeoutMs: opts.timeoutMs ?? LIMITS.timeoutMs,
       maxRedirects: 0,
     });
-    const parsed: unknown = JSON.parse(text);
+    const parsed: unknown = parseJsonStrict(text);
     const v = validateProofFile(parsed);
     if (!v.valid) return { state: 'unverified', detail: `oar.json invalid: ${v.errors.join('; ')}` };
     return proofNames(parsed as ProofFile, appId, cluster) === 'match'

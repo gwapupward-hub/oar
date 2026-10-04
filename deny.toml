@@ -1,0 +1,42 @@
+# cargo-deny policy for the program workspace (Cargo.lock) and tools/idlgen (its own Cargo.lock).
+# CI: `cargo deny --locked check` and `cargo deny --locked --manifest-path tools/idlgen/Cargo.toml --config deny.toml check`.
+
+[graph]
+all-features = true
+
+[advisories]
+# Every vulnerability, unmaintained, unsound or yanked finding fails the check unless listed here with a reason.
+yanked = "deny"
+ignore = [
+  # bincode 1.3.3 is unmaintained (the authors stopped development; no vulnerability is reported and no
+  # safe upgrade exists). It reaches the program only through anchor-lang 1.2.0 and solana-instruction /
+  # solana-sysvar, which OAR does not control. Re-check when Anchor or the Solana crates drop it.
+  { id = "RUSTSEC-2025-0141", reason = "unmaintained, not a vulnerability; pulled in by anchor-lang 1.2.0 and solana-* crates" },
+]
+
+[licenses]
+confidence-threshold = 0.93
+allow = [
+  "Apache-2.0",
+  "MIT",
+  "BSD-1-Clause",
+  "BSD-3-Clause",
+  "Unicode-3.0",
+  "Unlicense",
+  "Zlib",
+]
+
+[licenses.private]
+# Workspace crates marked `publish = false` (idlgen) are not license-checked.
+ignore = true
+
+[bans]
+# The Solana crates carry several duplicate versions; report them without failing.
+multiple-versions = "warn"
+wildcards = "deny"
+allow-wildcard-paths = true
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
