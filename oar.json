@@ -1,0 +1,9 @@
+{
+  "oar": "0.1",
+  "apps": [
+    {
+      "app_id": "Bu1JCyxiVDdDGjtNLLkKhq6KZv6E4LcUgqNkS5t5Nf2K",
+      "cluster": "solana:devnet"
+    }
+  ]
+}
