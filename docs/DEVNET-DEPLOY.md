@@ -26,6 +26,14 @@ solana airdrop 2 "$(solana-keygen pubkey devnet-payer.json)" -u devnet   # or ht
 
 Only the program's **public** address is shared.
 
+**Fund only the fee payer. Never send SOL to the program ID before its first deploy.** The first deploy has to create the program account itself, so a funded address blocks it. If it happens, the preflight reports it. Return the SOL with the program keypair, then re-run the preflight:
+
+```bash
+solana transfer <FEE_PAYER_PUBKEY> ALL --from ~/.config/solana/oar/<PROGRAM_ID>.json \
+  --fee-payer ~/.config/solana/oar/<PROGRAM_ID>.json --allow-unfunded-recipient -u devnet
+solana account <PROGRAM_ID> -u devnet    # expect AccountNotFound
+```
+
 ## 1. Set the identity (pull request)
 
 ```bash

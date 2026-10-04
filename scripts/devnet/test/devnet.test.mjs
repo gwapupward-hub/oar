@@ -13,7 +13,7 @@ import {
   rpcHost,
   sha256,
 } from '../lib.mjs';
-import { evaluate } from '../preflight.mjs';
+import { describeNonProgram, evaluate } from '../preflight.mjs';
 import { deployArgs, parseDeployOutput, DEPLOY_FLAGS } from '../deploy.mjs';
 import { CASES, judge } from '../smoke.mjs';
 import { deriveStatus, gwapRecord } from '../record.mjs';
@@ -106,6 +106,7 @@ test('preflight refuses each unsafe condition', () => {
     [{ payerLamports: SOL }, /needs at least/],
     [{ payerLamports: null }, /payer balance/],
     [{ onchain: { error: 'rpc down' } }, /Could not read the program account/],
+    [{ onchain: { prefunded: { lamports: 5n * SOL } } }, /already holds 5\.0000 SOL as a plain system account[\s\S]*solana transfer Payer1+ ALL --from <PROGRAM_KEYPAIR>/],
   ];
   for (const [patch, pattern] of cases) assert.match(failuresOf(facts(patch)), pattern, Object.keys(patch).join());
 });
@@ -168,4 +169,15 @@ test('IDL comparison ignores key order and whitespace only', () => {
   assert.ok(idlMatches('{"a":1,"b":[1,2]}', '{ "b": [1, 2], "a": 1 }'));
   assert.ok(!idlMatches('{"a":1,"b":[1,2]}', '{"a":1,"b":[2,1]}'));
   assert.equal(canonicalJson({ b: 1, a: { d: 2, c: 3 } }), '{"a":{"c":3,"d":2},"b":1}');
+});
+
+test('a funded system account at the program address is reported as pre-funded, anything else as an error', () => {
+  const show = { ok: false, stdout: '', stderr: 'Error: X is not an SBF program' };
+  const system = { ok: true, stderr: '', stdout: '{"pubkey":"X","account":{"lamports":5000000000,"data":["","base64"],"owner":"11111111111111111111111111111111","executable":false,"rentEpoch":18446744073709551615,"space":0}}' };
+  assert.deepEqual(describeNonProgram(system, show), { prefunded: { lamports: 5_000_000_000n } });
+  const token = { ...system, stdout: system.stdout.replace('11111111111111111111111111111111', 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA').replace('"space":0', '"space":165') };
+  assert.match(describeNonProgram(token, show).error, /owned by Tokenkeg/);
+  assert.equal(describeNonProgram({ ok: false, stdout: '', stderr: 'rpc down' }, show).error, show.stderr);
+  assert.match(evaluate(facts({ onchain: { prefunded: { lamports: 1n } } })).failures.join(), /plain system account/);
+  assert.equal(evaluate(facts({ onchain: { prefunded: { lamports: 1n } } })).mode, null);
 });
