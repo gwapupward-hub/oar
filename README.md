@@ -13,10 +13,10 @@
 
 Onchain application identity for Solana. Every app gets one permanent **App ID** that wallets, explorers and stores can resolve to its publisher, domains, programs and source, with every link proven from both sides instead of just claimed.
 
-> Status: **0.1.1-rc.1. Devnet: deployment prepared, not yet deployed; mainnet: NO-GO.** CI builds the program from source in a digest-pinned builder and tests that binary. Devnet deployment follows `docs/DEVNET-DEPLOY.md` once a fresh program identity is set. SAS rehearsal, governance and independent review remain mainnet gates. See `docs/PRODUCTION-READINESS.md`.
+> Status: **0.1.1-rc.1. Devnet: deployed and verified (October 4, 2026); mainnet: NO-GO.** The CI-built binary is live on devnet. Its onchain executable hash matches the build, the published IDL matches the repo, and the 13-check smoke suite passed (`release/devnet.json`, `release/evidence/devnet-smoke-2026-10-04-oariw8YX.json`). SAS rehearsal, governance and independent review remain mainnet gates. See `docs/PRODUCTION-READINESS.md`.
 
 - **Spec:** `docs/spec-v0.1.md` (updated implementation contract)
-- **Program ID:** `oariw8YXcYJh9sa9VcmBU3ZCdo2WVGMYPsLjEuUxfrC` (devnet deployment pending; see `release/devnet.json`). The previous `oarWKQoXgxp69Vupf883Pr1PvN35rAyZJeFu8q4pae5` is an exposed reference ID, and source checks and the CLI block it.
+- **Program ID:** `oariw8YXcYJh9sa9VcmBU3ZCdo2WVGMYPsLjEuUxfrC`, deployed on devnet at slot 507319507 (ProgramData `BoDE8nY9kcmLqbZCQZW6gfjzTJhcDzU7FB1ZWmUqM72d`, executable hash `1ecc9309…e065ff`; see `release/devnet.json`). Not deployed on mainnet. The previous `oarWKQoXgxp69Vupf883Pr1PvN35rAyZJeFu8q4pae5` is an exposed reference ID, and source checks and the CLI block it.
 
 ## How it works
 

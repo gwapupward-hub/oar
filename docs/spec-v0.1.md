@@ -10,7 +10,7 @@ OAR gives every Solana application one permanent onchain App ID that wallets, ex
 
 - **Problem:** Solana can say which program an instruction calls. It cannot say which application that program belongs to, who publishes it, or whether the site asking for a signature really is that app.
 - **Approach:** a five-instruction registry program stores the App ID and a hash of its manifest. Everything else reuses existing primitives: Program Metadata for program backlinks, Solana Attestation Service (SAS) for verification badges, OtterSec verified builds for source.
-- **Status:** draft v0.1. A reference implementation (program, TypeScript SDK, CLI) is built and passes its tests locally; nothing is deployed to devnet or mainnet yet. Program ID: `oariw8YXcYJh9sa9VcmBU3ZCdo2WVGMYPsLjEuUxfrC` (devnet deployment pending).
+- **Status:** draft v0.1. A reference implementation (program, TypeScript SDK, CLI) is built and passes its tests locally; it is deployed and verified on devnet (October 4, 2026, slot 507319507; see `release/devnet.json`) and not deployed to mainnet. Program ID: `oariw8YXcYJh9sa9VcmBU3ZCdo2WVGMYPsLjEuUxfrC`.
 - **Name:** Open App Registry (OAR) is a working name. "SAS" was rejected because Solana Attestation Service already uses it, and this spec depends on that service. Renaming touches four constants: the Program Metadata seed `oar`, the `/.well-known/oar.json` path, the `_oar` DNS label and the `oar-` SAS schema prefix.
 
 ## Design principles and scope
