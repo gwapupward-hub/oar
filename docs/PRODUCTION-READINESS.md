@@ -66,7 +66,7 @@ The deploy used Agave CLI 3.1.10 on the operator machine; the build used 4.1.2 i
 | Fresh release identity | Founder/release custodian | Approved fresh public program ID; private signer custody; all IDs reconciled and fresh binary rebuilt |
 | Controlled build and Rust validation | Release engineer with builder access | Approved immutable image/tool versions; Rust tests/format/clippy; IDL drift check; fresh-binary tests and independent reproducibility hashes |
 | SAS/dependency compatibility | Integration engineer | Actual intended devnet SAS schema/credential/issuance/pause/revocation evidence; Program Metadata and cross-cluster rehearsal |
-| Independent security review | External reviewer | Review of final source, compiled artifact, network policy and authority paths; no unresolved material findings |
+| Independent security review | External reviewer | Review of final source, compiled artifact, network policy and authority paths; no unresolved material findings. Scope packet: `docs/SECURITY-REVIEW-SCOPE.md`. The internal pre-review (`docs/reviews/2026-10-04-internal-prereview.md`) is not independent; OAR-IR-01 is fixed, OAR-IR-02 and OAR-IR-04 are open |
 | Governance and operations | Founder/operations owner | Onchain authority verified, approved multisig policy, dedicated RPC configuration, monitoring/incident contacts and rollback rehearsal |
 | Mainnet release authorization | Founder | Exact cluster/program/artifact/payer/authority/cost/recovery action separately approved immediately before broadcast |
 

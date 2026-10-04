@@ -242,3 +242,19 @@ test('compressed backlink bombs fail without aborting unrelated claims', async (
   const app = await resolveApp(w.rpc, w.appId, options(w));
   assert.equal(app?.programs[0].state, 'failed'); assert.equal(app?.domains[0].state, 'attested');
 });
+test('evidence from a signer the credential no longer authorizes fails closed', async () => {
+  const w = await world();
+  const other = (await generateKeyPairSigner()).address;
+  await domain(w); assert.equal((await fetchDomain(w)).status, 'valid');
+  assert.deepEqual((await resolveApp(w.rpc, w.appId, options(w)))?.domains.map(d => d.state), ['attested']);
+  await domain(w, { authorizedSigners: [other] }); assert.equal((await fetchDomain(w)).status, 'invalid', 'signer removed');
+  assert.deepEqual((await resolveApp(w.rpc, w.appId, options(w)))?.domains.map(d => d.state), ['unverified']);
+  await domain(w, { authorizedSigners: [] }); assert.equal((await fetchDomain(w)).status, 'invalid', 'no signers');
+  await domain(w); setRawAccount(w.svm, w.credential, '11111111111111111111111111111111' as Address, new Uint8Array());
+  assert.equal((await fetchDomain(w)).status, 'invalid', 'credential closed');
+  await domain(w); const cred = w.svm.getAccount(w.credential); assert.ok(cred.exists);
+  setRawAccount(w.svm, w.credential, OAR_PROGRAM_ID, Uint8Array.from(cred.data));
+  assert.equal((await fetchDomain(w)).status, 'invalid', 'credential owned by another program');
+  await domain(w, { signer: other, authorizedSigners: [w.credential, other] });
+  assert.equal((await fetchDomain(w)).status, 'valid', 'any currently authorized signer');
+});

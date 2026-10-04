@@ -40,6 +40,8 @@ export const OAR_SCHEMAS = {
 
 export type OarSchemaName = keyof typeof OAR_SCHEMAS;
 
+/** SAS account discriminators (upstream program): Credential 0, Schema 1, Attestation 2. */
+export const SAS_CREDENTIAL_DISCRIMINATOR = 0;
 /** SAS Attestation account: disc u8 | nonce | credential | schema | u32 len | data | signer | expiry i64 | token_account. */
 export const SAS_ATTESTATION_DISCRIMINATOR = 2;
 export const ATTESTATION_DATA_OFFSET = 101;
@@ -128,6 +130,22 @@ class Reader {
   end(): void { if (this.offset !== this.bytes.length) throw new Error('Trailing SAS bytes'); }
 }
 
+/**
+ * Signers a SAS credential authorizes now: disc u8 | authority | name Vec<u8> | authorized_signers Vec<Pubkey>.
+ * Null when the bytes are not a credential.
+ */
+export function decodeCredentialSigners(bytes: Uint8Array): Address[] | null {
+  try {
+    const r = new Reader(bytes);
+    if (r.u8() !== SAS_CREDENTIAL_DISCRIMINATOR) return null;
+    r.take(32); r.vec();
+    const count = getU32Decoder().decode(r.take(4));
+    const out: Address[] = [];
+    for (let i = 0; i < count; i++) out.push(addressDecoder.decode(r.take(32)));
+    return out;
+  } catch { return null; }
+}
+
 /** Decode and validate the actual SAS schema, not its name alone. */
 export function validateClaimSchema(bytes: Uint8Array, credential: Address, name: OarSchemaName): boolean {
   try {
@@ -163,6 +181,10 @@ export async function fetchClaimAttestation(
         !validateClaimSchema(Uint8Array.from(schema.data), args.credential, args.schema)) return { status: 'invalid', address };
     const att = decodeAttestation(Uint8Array.from(account.data));
     if (att.nonce !== nonce || att.schema !== schemaPda || att.credential !== args.credential) return { status: 'mismatch', address };
+    // SAS checks the signer only at issuance; removing a signer from the credential must also withdraw its evidence.
+    const credential = await fetchEncodedAccount(rpc, args.credential, { commitment: 'finalized' });
+    const signers = credential.exists && credential.programAddress === SAS_PROGRAM_ID ? decodeCredentialSigners(Uint8Array.from(credential.data)) : null;
+    if (!signers?.includes(att.signer)) return { status: 'invalid', address };
     const r = new Reader(att.data);
     if (r.id() !== args.appId || r.text() !== args.appCluster) return { status: 'mismatch', address };
     if (args.schema === 'oar-program') {
