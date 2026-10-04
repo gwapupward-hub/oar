@@ -40,7 +40,24 @@ Instruction simulations use the HISTORICAL supplied binary, SHA-256 `90026a6b69a
   - deploying the exact CI artifact, with the onchain hash compared afterwards;
   - publishing the IDL through Program Metadata and reading it back;
   - a 13-case smoke suite.
-- Status: fresh program identity `oariw8YXcYJh9sa9VcmBU3ZCdo2WVGMYPsLjEuUxfrC` set (public address only; the keypair stays with the release custodian). Devnet deployment waits on the operator run. Mainnet remains NO-GO on the gates below.
+- Status: fresh program identity `oariw8YXcYJh9sa9VcmBU3ZCdo2WVGMYPsLjEuUxfrC` set (public address only; the keypair stays with the release custodian).
+
+## Devnet deployment — October 4, 2026: DEVNET_VERIFIED
+
+Evidence: `release/devnet.json`, `release/evidence/devnet-smoke-2026-10-04-oariw8YX.json`, and the GWAP record `release/gwap-release-record.devnet.json`.
+
+| Item | Value |
+| --- | --- |
+| Source commit / CI run | `9329e0d` — push run 37180654499 on `main`, double build identical |
+| Builder | `quay.io/ottersec/anchor@sha256:54e9bbc8…bb4d` (Anchor 1.2.0, Agave 4.1.2, platform-tools v1.54) |
+| Artifact | 175,064 bytes; SHA-256 `e6112fff…f37a5a`; executable hash `1ecc9309…e065ff` |
+| Deployment | Fresh deploy at slot 507319507, signature `24Ud958T…RQkUZ`, ProgramData `BoDE8nY9kcmLqbZCQZW6gfjzTJhcDzU7FB1ZWmUqM72d` |
+| Onchain verification | The executable hash equals the artifact, both by a ProgramData dump and by `solana-verify` 0.5.2 |
+| Keys | Upgrade authority `2iceQADt8dJwpRLqoszVTcnRVnPUfBFtKxMTuqvWoovr` (a single devnet key, not a multisig); fee payer `91N96ZPGHcFWe2jEZie9rUVqyHF5BWMV7mYnHMurhWB7`; both distinct from the program key |
+| IDL | Program Metadata seed `idl`, signed by the upgrade authority; read back and equal to `idl/oar_registry.json` (SHA-256 `15ab0399…220057`) |
+| Smoke | 13/13 checks passed: 6 expected successes (register 8,484 CU; other instructions 3,408–4,063 CU) and 6 expected errors (`Unauthorized`, `NoPendingAuthority`, `AppRetired`, duplicate nonce). The final record is Retired, with the new authority and revision 1 |
+
+The deploy used Agave CLI 3.1.10 on the operator machine; the build used 4.1.2 inside the pinned builder. Mainnet remains NO-GO on the gates below. Devnet does not exercise the Squads upgrade governance, SAS issuance or a dedicated RPC.
 
 ## Remaining deployment blockers and owners
 
