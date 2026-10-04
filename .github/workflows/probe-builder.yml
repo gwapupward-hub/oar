@@ -1,0 +1,29 @@
+name: probe builder (temporary)
+on:
+  push:
+    branches: [claude/devnet-deploy-prep]
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Resolve candidate images
+        run: |
+          for img in quay.io/ottersec/anchor:v1.2.0 quay.io/ottersec/anchor:1.2.0 solanafoundation/anchor:v1.2.0 solanafoundation/anchor:1.2.0; do
+            echo "=== $img"
+            if docker pull -q "$img"; then
+              echo "DIGEST $(docker inspect --format '{{index .RepoDigests 0}}' "$img")"
+              docker run --rm "$img" sh -c 'rustc --version; cargo --version; solana --version; anchor --version; cargo-build-sbf --version 2>/dev/null || cargo build-sbf --version; command -v solana-verify && solana-verify --version; cat /etc/os-release | head -2' || true
+              echo "$img" >> /tmp/ok
+            fi
+          done
+          test -s /tmp/ok
+      - name: Build program in first working image
+        run: |
+          img="$(head -1 /tmp/ok)"; echo "USING $img"
+          docker run --rm -v "$PWD:/work" -w /work "$img" sh -eu -c 'cargo build-sbf --manifest-path programs/oar-registry/Cargo.toml' 2>&1 | tail -20
+          ls -l target/deploy/
+          sha256sum target/deploy/oar_registry.so
