@@ -19,7 +19,34 @@ HTTPS, DNS and metadata bytes are untrusted. Default Node transport validates al
 3. Pass ONLY the approved public address to `node scripts/set-program-id.mjs <PUBLIC_ADDRESS>`. Source, Anchor config, IDL and generated client are synchronized. Update app manifests/backlinks for the newly derived App IDs. Rebuild everything; the old test binary is unusable after identity changes.
 4. The approved Anchor 1.2.0 builder is pinned by digest in `release/devnet.json`, with its recorded tool versions. For mainnet, set `release/production.json` to the same digest and the source commit. Toolchain compatibility must be demonstrated, not inferred from a tag.
 5. The `program` CI job runs on every push and PR. It covers Rust tests, format and clippy, the sBPF build and the IDL comparison, and requires two clean builds to be byte-identical. The `client` job runs the SDK suite with `OAR_PROGRAM_BINARY` pointing to that output. Retain the uploaded artifact (`oar_registry.so` and `build-metadata.json` with the SHA-256 and executable hash) for the commit being released. Run a separate controlled builder for independent reproducibility evidence where practical.
-6. Review advisory/license results for both JS and Rust dependency graphs. The local JS audit returned zero reported advisories; Rust advisory checks have not run. Pin workflow actions to reviewed immutable commits before production CI use.
+6. Review the dependency results for both graphs on the commit being released. The `dependencies` CI job runs `cargo-deny` on both Rust lockfiles with `deny.toml`, plus `npm audit` and `npm audit signatures`, and uploads the reports. Workflow actions are pinned to reviewed commit SHAs. A new advisory fails CI until it is fixed, or accepted in `deny.toml` with a reason.
+
+## Repository protection
+
+Apply once, as a repository admin (GitHub → Settings → Rules → Rulesets → New ruleset → Import a ruleset):
+
+1. **`.github/rulesets/main.json`, "Protect main":**
+   - changes only through pull requests, with review threads resolved;
+   - the CI checks `program`, `client` and `dependencies` must pass;
+   - no force pushes, no deletion, and no bypass, including for admins.
+   - Approvals are set to 0 because the repository has one maintainer, and GitHub does not let authors approve their own PRs. Raise it when a second maintainer joins.
+2. **`.github/rulesets/release-tags.json`, "Immutable release tags":** `v*` tags can be created, by the release workflow, but never moved or deleted.
+
+Also turn on:
+- under Settings → Advanced Security: secret scanning with push protection, Dependabot alerts, and private vulnerability reporting;
+- under Settings → General: immutable releases, if offered.
+
+## Cutting a release
+
+1. Set the version in `package.json`, `packages/sdk/package.json`, `packages/cli/package.json`, the CLI's SDK dependency and `.version()` in `packages/cli/src/index.ts`, then run `npm install` to refresh the lockfile.
+2. Write `release/notes/v<version>.md`, and merge through a PR. `npm run release:check -- <version>` checks the version.
+3. Actions → Release → Run workflow on `main` with the version. The workflow:
+   - reruns `ci.yml` on that commit;
+   - assembles the assets with `scripts/release.mjs`;
+   - creates the tag and the release. A suffix such as `-rc.1` makes it a pre-release.
+4. Check the published `SHA256SUMS` and `release-manifest.json`. For a candidate whose program is unchanged, also confirm that it states the binary is the deployed devnet program.
+
+A tag is never moved. A bad release is superseded by a new version.
 
 ## Supported first-release scope
 

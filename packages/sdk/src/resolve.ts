@@ -5,6 +5,7 @@ import { checkManifest, fetchManifest, type FetchManifestOptions, type ManifestC
 import { backlinkMatches, checkDomain, checkRepository, fetchProgramBacklink, type LinkCheck } from './links.js';
 import { fetchClaimAttestation, type OarSchemaName } from './attestations.js';
 import { bytesEqual } from './manifest.js';
+import { DuplicateKeyError } from './json.js';
 
 type AccountRpc = Rpc<GetAccountInfoApi>;
 
@@ -108,7 +109,10 @@ export async function resolveApp(rpc: AccountRpc, appId: Address, opts: ResolveO
     const raw = await fetchManifest(record.manifestUri, opts);
     base.manifest = checkManifest(raw, { appId, cluster: opts.cluster, manifestHash: record.manifestHash });
   } catch (e) {
-    base.manifest = { ok: false, reason: 'unavailable', errors: [(e as Error).message] };
+    // A manifest that repeats a key is malformed, not unreachable: different parsers would read different content.
+    base.manifest = e instanceof DuplicateKeyError
+      ? { ok: false, reason: 'schema', errors: [e.message] }
+      : { ok: false, reason: 'unavailable', errors: [(e as Error).message] };
   }
 
   // Display rules: a retired app shows no link chips; an invalid manifest has no claims to check.

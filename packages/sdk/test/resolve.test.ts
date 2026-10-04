@@ -142,6 +142,26 @@ test('a tampered manifest is unusable and no claims are checked', async () => {
   assert.equal((missing?.manifest as { reason: string }).reason, 'unavailable');
 });
 
+test('repeated JSON keys invalidate the manifest and the backlink even when the hash matches', async () => {
+  const w = await world();
+  // JSON.parse keeps the last duplicate, so this body hashes to the registered manifest; strict parsing refuses it.
+  const shadowed = JSON.stringify(w.manifest).replace('{', '{"name":"Phantom",');
+  const app = await resolveApp(w.rpc, w.appId, opts({ ...w.routes, [MANIFEST_URL]: { body: shadowed } }));
+  assert.deepEqual(app?.manifest, { ok: false, reason: 'schema', errors: ['Duplicate JSON key "name"'] });
+  assert.equal(app?.programs.length, 0);
+
+  const impostor = await findAppId({ creator: (await generateKeyPairSigner()).address, nonce: 0n });
+  const link = JSON.stringify(buildProgramLink(w.appId, CLUSTER)).replace('{', `{"app":"${impostor}",`);
+  setRawAccount(w.svm, w.metadataPda, PROGRAM_METADATA_PROGRAM_ID, backlinkAccount(w.program, link));
+  const program = (await resolveApp(w.rpc, w.appId, opts(w.routes)))?.programs[0];
+  assert.equal(program?.state, 'failed');
+  assert.match(program?.detail ?? '', /Duplicate JSON key "app"/);
+
+  const proof = JSON.stringify(buildProofFile([{ appId: w.appId, cluster: CLUSTER }])).replace('{', '{"apps":[],');
+  const repo = (await resolveApp(w.rpc, w.appId, opts({ ...w.routes, [repoProofUrl(REPO)!]: { body: proof } })))?.repositories[0];
+  assert.equal(repo?.state, 'unverified');
+});
+
 test('retired apps keep their manifest but show no link chips', async () => {
   const w = await world();
   assert.ok((await send(w.svm, w.creator, [getSetStatusInstruction({ appRecord: w.appId, authority: w.creator, status: 2 })])).ok);

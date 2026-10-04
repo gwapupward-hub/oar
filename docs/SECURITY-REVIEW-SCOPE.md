@@ -12,7 +12,8 @@ This is for the external reviewer who will clear the mainnet gate in `docs/PRODU
 | IDL | `idl/oar_registry.json`, SHA-256 `15ab0399…220057`, published on devnet through Program Metadata (seed `idl`) |
 | SDK verifier | `packages/sdk/src/{attestations,links,resolve,manifest,http}.ts` at the head of the review branch |
 | CLI signing path | `packages/cli/src/{tx,index}.ts` |
-| Release and operator tooling | `scripts/check-release.mjs`, `scripts/package-release.py`, `scripts/devnet/*.mjs`, `.github/workflows/ci.yml` |
+| Release and operator tooling | `scripts/check-release.mjs`, `scripts/package-release.py`, `scripts/release.mjs`, `scripts/devnet/*.mjs`, `.github/workflows/{ci,release}.yml`, `deny.toml` |
+| Release candidate | `v0.1.1-rc.1` (GitHub pre-release). Its assets carry `SHA256SUMS`, `release-manifest.json` and the dependency reports |
 
 The final mainnet source commit and artifact hash replace these pins when they are approved. The review must cover that exact commit and binary.
 
@@ -54,7 +55,10 @@ These are OAR-01 to OAR-06 in `docs/PRODUCTION-READINESS.md`:
 - decoder failure isolation;
 - spec mismatches.
 
-The internal pre-review adds OAR-IR-01: attestation signers are now re-checked against the credential's current signers.
+The internal pre-review adds:
+- OAR-IR-01: attestation signers are re-checked against the credential's current signers.
+- OAR-IR-02: duplicate JSON keys are rejected.
+- OAR-IR-04: CI actions are pinned and the dependencies are scanned.
 
 ## How to reproduce and verify
 
@@ -70,7 +74,7 @@ cargo test --locked -p oar-registry --lib && npm run test:cli && npm run test:de
 
 Live devnet evidence:
 - `release/evidence/devnet-smoke-2026-10-04-oariw8YX.json`: lifecycle and negative cases, with signatures.
-- After the operator runs them, the self-registration and SAS rehearsal evidence in `release/evidence/`.
+- `release/evidence/devnet-oar-app-2026-10-04-Bu1JCyxi.json` and `release/evidence/devnet-sas-rehearsal-2026-10-04-GFHnocWS.json`: self-registration and the SAS rehearsal.
 
 ## Requested depth
 

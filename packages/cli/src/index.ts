@@ -17,6 +17,7 @@ import {
   getUpdateManifestInstruction,
   hashManifest,
   hashManifestHex,
+  parseJsonStrict,
   resolveApp,
   resolveProgram,
   validateManifest,
@@ -35,8 +36,9 @@ const clusterOpt = () => new Option('-c, --cluster <cluster>', 'mainnet | devnet
 const rpcOpt = () => new Option('-u, --rpc <url>', 'RPC URL (defaults to the public endpoint for the cluster)');
 const keypairOpt = () => new Option('-k, --keypair <path>', 'signer keypair file').default(undefined, '~/.config/solana/id.json');
 
+/** Manifests and proof files are read strictly: a repeated key is an error, never silently merged. */
 function readJson(path: string): unknown {
-  return JSON.parse(readFileSync(path, 'utf8'));
+  return parseJsonStrict(readFileSync(path, 'utf8'));
 }
 
 function writeJson(path: string, value: unknown, force = false): void {

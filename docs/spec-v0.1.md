@@ -156,7 +156,7 @@ Categories: `defi`, `dex`, `lending`, `payments`, `wallet`, `nft`, `marketplace`
 
 **Hashing**
 
-1. Parse the fetched bytes as JSON (UTF-8, at most 64 KiB).
+1. Parse the fetched bytes as JSON (UTF-8, at most 64 KiB). Manifests MUST NOT repeat a member name within any object, and verifiers MUST reject a manifest that does, as `schema` invalid. Parsers disagree on which duplicate wins, so one hash would otherwise cover content that different clients read differently.
 2. Serialize with RFC 8785 (JSON Canonicalization Scheme). Manifests MUST NOT contain non-integer numbers.
 3. `manifest_hash = SHA-256(canonical bytes)`.
 
@@ -189,6 +189,8 @@ Because the hash covers the canonical form, hosts can pretty-print or reorder ke
 ## Link proofs
 
 A claim counts only when the other side points back to the same App ID on the same cluster. Each check below needs no OAR server: any client can run it.
+
+Backlinks, well-known files and `oar.json` follow the manifest's JSON rule: a document that repeats a member name within any object is invalid, and the check does not pass.
 
 **Programs: Program Metadata backlink**
 
@@ -307,6 +309,7 @@ A wallet follows program metadata, the registry, and individual claims; RPC read
 5. Retired apps show "Retired" and no chips. Deprecated apps show "Deprecated" beside the name.
 6. When the connecting site's origin is a verified domain of the app that owns the called program, wallets MAY say so. A mismatch is information, not a block, because one transaction can touch many apps' programs.
 7. Render all manifest text as plain text, and show hostnames in punycode when they contain non-ASCII characters.
+8. `register` does not require the named `authority` to sign, so a record can name any key, including a well-known one. Never present the authority as the app's identity or as an endorsement. It shows control of the record only after that key has signed for it, for example an `update_manifest` (revision above 0) or an `accept_authority`.
 
 ## Interoperability
 

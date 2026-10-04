@@ -2,6 +2,7 @@
 export * from './generated/index.js';
 
 export * from './constants.js';
+export * from './json.js';
 export * from './manifest.js';
 export * from './links.js';
 export * from './attestations.js';

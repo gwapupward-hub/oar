@@ -99,6 +99,30 @@ Limits:
 - The rehearsal used the SDK as it was on `main` before the credential-signer check (OAR-IR-01) was added. Every attestation it judged `attested` was signed by the credential's only authorized signer, so that check would not change the outcome. Signer removal is covered by LiteSVM regression tests, not by this run.
 - It proves OAR's SAS semantics with a TEST credential. No production issuer is provisioned, and the default trust list stays empty.
 
+## Repository hardening and release candidate — October 4, 2026
+
+This is the checkpoint for `v0.1.1-rc.1`: the protocol version clients such as the OAR web explorer build against.
+
+- **CI supply chain (OAR-IR-04):**
+  - Actions are pinned to commit SHAs, and checkouts do not persist credentials.
+  - The `dependencies` job runs `cargo-deny` on both Rust lockfiles (`deny.toml`), plus `npm audit` and `npm audit signatures`.
+  - Dependabot keeps the action pins current.
+- **Strict JSON (OAR-IR-02):** manifests, proof files and backlinks with a repeated key are rejected by the SDK, the CLI and the spec.
+- **Spec and CLI (OAR-IR-03, OAR-IR-06):**
+  - Spec display rule 8: the record authority is not an endorsement.
+  - A CLI confirmation timeout says to check the signature before retrying.
+- **Deterministic release (`.github/workflows/release.yml`):**
+  - It is started manually on `main` with the version, and refuses a version that differs from the packages or a tag that already exists.
+  - It reruns the full CI gate on that commit, then publishes the tag and a GitHub release. The assets are:
+    - the program binary, the build metadata and the IDL;
+    - the npm tarballs (`npm pack` is byte-reproducible) and a reproducible source archive;
+    - the devnet records and the dependency reports;
+    - `release-manifest.json` and `SHA256SUMS`.
+  - While the program source is unchanged since the devnet build, the release binary must reproduce the deployed executable hash, or the release is blocked.
+- **Branch and tag protection:** importable rulesets in `.github/rulesets/` (`docs/RELEASE-RUNBOOK.md`, "Repository protection"). Applying them is a repository-admin step.
+
+The mainnet gates below still apply.
+
 ## Remaining deployment blockers and owners
 
 | Gate | Owner | Acceptance evidence |
@@ -106,7 +130,7 @@ Limits:
 | Fresh release identity | Founder/release custodian | Approved fresh public program ID; private signer custody; all IDs reconciled and fresh binary rebuilt |
 | Controlled build and Rust validation | Release engineer with builder access | Approved immutable image/tool versions; Rust tests/format/clippy; IDL drift check; fresh-binary tests and independent reproducibility hashes |
 | SAS/dependency compatibility | Integration engineer | Actual intended devnet SAS schema/credential/issuance/pause/revocation evidence; Program Metadata and cross-cluster rehearsal |
-| Independent security review | External reviewer | Review of final source, compiled artifact, network policy and authority paths; no unresolved material findings. Scope packet: `docs/SECURITY-REVIEW-SCOPE.md`. The internal pre-review (`docs/reviews/2026-10-04-internal-prereview.md`) is not independent; OAR-IR-01 is fixed, OAR-IR-02 and OAR-IR-04 are open |
+| Independent security review | External reviewer | Review of final source, compiled artifact, network policy and authority paths; no unresolved material findings. Scope packet: `docs/SECURITY-REVIEW-SCOPE.md`. The internal pre-review (`docs/reviews/2026-10-04-internal-prereview.md`) is not independent. Its findings OAR-IR-01, OAR-IR-02 and OAR-IR-04 are fixed, and OAR-IR-03 and OAR-IR-06 are addressed; OAR-IR-05 is the governance gate |
 | Governance and operations | Founder/operations owner | Onchain authority verified, approved multisig policy, dedicated RPC configuration, monitoring/incident contacts and rollback rehearsal |
 | Mainnet release authorization | Founder | Exact cluster/program/artifact/payer/authority/cost/recovery action separately approved immediately before broadcast |
 

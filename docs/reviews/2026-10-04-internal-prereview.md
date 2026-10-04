@@ -20,8 +20,10 @@
 - **Devnet:** GO, already deployed and verified.
 - **Mainnet:** NO-GO.
   - No program finding blocks it.
-  - The remaining blockers are the open gates: an independent review, Squads governance, the SAS rehearsal evidence, dependency and CI hardening, and operations.
-  - OAR-IR-01 is fixed in this change. OAR-IR-02 and OAR-IR-04 stay open as low-severity follow-ups.
+  - The remaining blockers are the open gates: an independent review, Squads governance and operations. The SAS rehearsal and the dependency and CI hardening are done.
+  - OAR-IR-01, OAR-IR-02 and OAR-IR-04 are fixed. OAR-IR-03 and OAR-IR-06 are addressed in the spec and the CLI. OAR-IR-05 stays open as the governance gate.
+
+**Status update, October 4, 2026 (repository hardening for `v0.1.1-rc.1`):** OAR-IR-02, OAR-IR-03, OAR-IR-04 and OAR-IR-06 were resolved after this review was written. Each finding below records how.
 
 ## Findings
 
@@ -45,7 +47,7 @@
   - the resolve-level `attested` → `unverified` transition.
 - **Cost:** one extra finalized `getAccountInfo` per attestation lookup.
 
-### OAR-IR-02 — Duplicate JSON keys hash identically and parse differently across implementations (Low, open)
+### OAR-IR-02 — Duplicate JSON keys hash identically and parse differently across implementations (Low, fixed)
 
 - **Confidence:** high for the behaviour, medium for the impact.
 - **Evidence:** manifests, proof files and backlinks go through `JSON.parse` (`manifest.ts:155`, `links.ts:75,138,202`), which keeps the **last** duplicate key. The hash is then taken over the canonicalized parsed value. Checked:
@@ -59,14 +61,24 @@
   - The spec should say manifests, proof files and backlinks MUST NOT contain duplicate keys, and verifiers MUST reject them.
   - The SDK should parse with duplicate-key detection before hashing.
 - **Regression test:** a manifest with a duplicate key resolves as `schema` (invalid), not `ok`.
+- **Fixed:**
+  - `packages/sdk/src/json.ts` `parseJsonStrict` parses as before, but throws `DuplicateKeyError` for a repeated member name in any object. Names are compared after unescaping.
+  - `fetchManifest`, the Program Metadata backlink and the well-known and `oar.json` proof files all use it. A duplicate-key manifest resolves as `schema` invalid, a backlink as `failed`, and a proof file as not verified.
+  - The CLI reads manifests strictly, so `oar validate`, `oar hash` and `oar register` refuse them.
+  - The spec makes the rule a MUST for manifests and proofs.
+  - Tests:
+    - `packages/sdk/test/manifest.test.ts` (parser cases);
+    - `packages/sdk/test/resolve.test.ts` → "repeated JSON keys invalidate the manifest and the backlink even when the hash matches";
+    - `packages/cli/test/release.test.ts`.
 
-### OAR-IR-03 — `AppRecord.authority` is not an endorsement by that key (Informational)
+### OAR-IR-03 — `AppRecord.authority` is not an endorsement by that key (Informational, addressed)
 
 - **Evidence:** `register` (`lib.rs:42`) accepts any non-zero `authority` without that key signing. This is intended, because it lets a Squads vault be named at creation.
 - **Risk:** a UI that displays "authority: <well-known key>" as social proof could be misled by a squatter's record naming a famous key.
 - **Remediation:** the spec display rules should state that `authority` proves control only after that key has signed an update. Clients should not present it as identity. No program change.
+- **Addressed:** spec display rule 8 (`docs/spec-v0.1.md`).
 
-### OAR-IR-04 — CI supply-chain hardening (Low, open; a known gate)
+### OAR-IR-04 — CI supply-chain hardening (Low, fixed)
 
 - **Evidence:**
   - `.github/workflows/ci.yml` uses `actions/*@v4` by tag, not by commit SHA. The runners also warn that these Node 20 actions are deprecated.
@@ -75,16 +87,25 @@
   - Pin the actions to reviewed SHAs.
   - Add `cargo deny check advisories bans licenses sources` against `Cargo.lock` and `tools/idlgen/Cargo.lock`.
   - Record the result as the `dependencyReview` evidence.
+- **Fixed:**
+  - Every action in `.github/workflows/` is pinned to a full commit SHA, on the Node 24 releases. Checkouts no longer persist credentials, and run steps use bash with `pipefail`.
+  - Dependabot (`.github/dependabot.yml`) proposes pin updates as reviewed PRs.
+  - The new CI job `dependencies` runs `cargo-deny` 0.20.2, a checksum-verified release binary, on both lockfiles with `deny.toml`:
+    - advisories, yanked crates, licenses (allow-list), wildcard bans and sources (crates.io only);
+    - one reviewed exception: RUSTSEC-2025-0141, unmaintained `bincode` 1.3.3. It is not a vulnerability, it reaches the program only through `anchor-lang` 1.2.0 and the `solana-*` crates, and no safe upgrade exists.
+  - The same job runs `npm audit` at level low and `npm audit signatures`. It uploads the reports, and each release attaches them.
+  - `.github/workflows/release.yml` reruns this full gate on the release commit before it tags.
 
 ### OAR-IR-05 — Single-key upgrade authority on devnet (Informational; a known gate)
 
 On devnet, both upgrades and the canonical `oar` and `idl` metadata are controlled by one hot key, `2iceQADt…`. Mainnet requires a Squads multisig, rehearsed on devnet, with the threshold and members recorded.
 
-### OAR-IR-06 — The CLI confirms at `confirmed` while the SDK resolves at `finalized` (Informational)
+### OAR-IR-06 — The CLI confirms at `confirmed` while the SDK resolves at `finalized` (Informational, addressed)
 
 - **Evidence:** `tx.ts:43`. `sendAndConfirm` returns at `confirmed`, and it throws "Timed out waiting for <signature>" after 60 s even if the transaction later lands. Resolution reads `finalized` state.
 - **Risk:** an operator may see "No AppRecord" right after `register`, or may re-send an `update` after a timeout, which bumps the revision twice. Integrity is unaffected.
 - **Remediation:** document that a timeout means "check the printed signature before retrying". Optionally, poll to `finalized` in the CLI.
+- **Addressed:** the timeout error now reads "Timed out waiting for <signature> after 60s. It may still land: check it (solana confirm <signature>) before retrying." Covered by `packages/cli/test/release.test.ts`. Polling to `finalized` is not added.
 
 ## Reviewed with no findings
 
@@ -106,4 +127,4 @@ On devnet, both upgrades and the canonical `oar` and `idl` metadata are controll
 
 ## Follow-ups for the external reviewer
 
-Re-check OAR-IR-01's fix, then decide OAR-IR-02 and OAR-IR-03 as spec changes. Then cover the "Requested depth" areas in `docs/SECURITY-REVIEW-SCOPE.md`, against the final mainnet commit.
+Re-check the fixes for OAR-IR-01, OAR-IR-02 and OAR-IR-04, and the spec rules added for OAR-IR-02 and OAR-IR-03. Then cover the "Requested depth" areas in `docs/SECURITY-REVIEW-SCOPE.md`, against the final mainnet commit.
