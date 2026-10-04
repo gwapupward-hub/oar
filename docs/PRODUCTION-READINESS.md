@@ -40,7 +40,7 @@ Instruction simulations use the HISTORICAL supplied binary, SHA-256 `90026a6b69a
   - deploying the exact CI artifact, with the onchain hash compared afterwards;
   - publishing the IDL through Program Metadata and reading it back;
   - a 13-case smoke suite.
-- Status: devnet deployment waits on the fresh program identity (public address) and the operator run. Mainnet remains NO-GO on the gates below.
+- Status: fresh program identity `oariw8YXcYJh9sa9VcmBU3ZCdo2WVGMYPsLjEuUxfrC` set (public address only; the keypair stays with the release custodian). Devnet deployment waits on the operator run. Mainnet remains NO-GO on the gates below.
 
 ## Remaining deployment blockers and owners
 

@@ -19,7 +19,7 @@ use events::*;
 use state::*;
 use validate::{validate_hash, validate_uri};
 
-declare_id!("oarWKQoXgxp69Vupf883Pr1PvN35rAyZJeFu8q4pae5");
+declare_id!("oariw8YXcYJh9sa9VcmBU3ZCdo2WVGMYPsLjEuUxfrC");
 
 #[cfg(not(feature = "no-entrypoint"))]
 use solana_security_txt::security_txt;

@@ -6,10 +6,10 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-oar_registry = "oarWKQoXgxp69Vupf883Pr1PvN35rAyZJeFu8q4pae5"
+oar_registry = "oariw8YXcYJh9sa9VcmBU3ZCdo2WVGMYPsLjEuUxfrC"
 
 [programs.devnet]
-oar_registry = "oarWKQoXgxp69Vupf883Pr1PvN35rAyZJeFu8q4pae5"
+oar_registry = "oariw8YXcYJh9sa9VcmBU3ZCdo2WVGMYPsLjEuUxfrC"
 
 [provider]
 cluster = "devnet"

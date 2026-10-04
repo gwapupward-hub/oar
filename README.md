@@ -16,7 +16,7 @@ Onchain application identity for Solana. Every app gets one permanent **App ID**
 > Status: **0.1.1-rc.1. Devnet: deployment prepared, not yet deployed; mainnet: NO-GO.** CI builds the program from source in a digest-pinned builder and tests that binary. Devnet deployment follows `docs/DEVNET-DEPLOY.md` once a fresh program identity is set. SAS rehearsal, governance and independent review remain mainnet gates. See `docs/PRODUCTION-READINESS.md`.
 
 - **Spec:** `docs/spec-v0.1.md` (updated implementation contract)
-- **Program ID:** `oarWKQoXgxp69Vupf883Pr1PvN35rAyZJeFu8q4pae5` is the exposed reference ID, for local tests only. The devnet ID is pending (`release/devnet.json`).
+- **Program ID:** `oariw8YXcYJh9sa9VcmBU3ZCdo2WVGMYPsLjEuUxfrC` (devnet deployment pending; see `release/devnet.json`). The previous `oarWKQoXgxp69Vupf883Pr1PvN35rAyZJeFu8q4pae5` is an exposed reference ID, and source checks and the CLI block it.
 
 ## How it works
 

@@ -25,7 +25,7 @@ export async function findAppRecordPda(
   config: { programAddress?: Address | undefined } = {},
 ): Promise<ProgramDerivedAddress> {
   const {
-    programAddress = "oarWKQoXgxp69Vupf883Pr1PvN35rAyZJeFu8q4pae5" as Address<"oarWKQoXgxp69Vupf883Pr1PvN35rAyZJeFu8q4pae5">,
+    programAddress = "oariw8YXcYJh9sa9VcmBU3ZCdo2WVGMYPsLjEuUxfrC" as Address<"oariw8YXcYJh9sa9VcmBU3ZCdo2WVGMYPsLjEuUxfrC">,
   } = config;
   return await getProgramDerivedAddress({
     programAddress,
