@@ -68,6 +68,8 @@ npm test
 
 ## CLI rehearsal (after fresh public identity selection and build)
 
+Registering an app that is already live: follow `docs/REGISTERING.md` (`oar claim prepare`, `check`, `register`, `link-program`). The lower-level commands are:
+
 ```bash
 alias oar="node packages/cli/dist/index.js"
 

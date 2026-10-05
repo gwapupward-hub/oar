@@ -1,26 +1,39 @@
 #!/usr/bin/env node
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { dirname, join } from 'node:path';
 import { Command, Option } from 'commander';
-import { address, type Address } from '@solana/kit';
+import { address, createNoopSigner, type Address, type KeyPairSigner } from '@solana/kit';
 import {
   AppStatus,
+  assertRegistrationInstructions,
+  backlinkMatches,
   buildProgramLink,
   buildProofFile,
+  bytesEqual,
   checkDomain,
+  checkManifestHosting,
+  checkRepository,
+  describeProgramLink,
+  describeRegistration,
+  exportUnsignedTransaction,
   fetchMaybeAppRecord,
+  fetchProgramBacklink,
   findAppId,
   getAcceptAuthorityInstruction,
+  getProgramLinkInstructions,
+  getProgramUpgradeAuthority,
   getProposeAuthorityInstruction,
   getRegisterInstructionAsync,
   getSetStatusInstruction,
   getUpdateManifestInstruction,
   hashManifest,
   hashManifestHex,
+  nextAppNonce,
   parseJsonStrict,
   resolveApp,
   resolveProgram,
   validateManifest,
+  type Category,
   type Cluster,
   type OarManifest,
   type ResolvedApp,
@@ -313,6 +326,221 @@ resolveOpts(program.command('resolve-program <program>').description('find the a
     printApp(r.app);
   }
 });
+
+// ---------------------------------------------------------------------------
+// oar claim: register an existing app in guarded steps. Nothing is signed until the hosted manifest matches, and
+// every transaction is summarized in plain sentences first.
+// ---------------------------------------------------------------------------
+
+interface ClaimState {
+  cluster: Cluster;
+  creator: string;
+  nonce: string;
+  app_id: string;
+  authority: string;
+  manifest_uri: string;
+}
+
+const claimPaths = (dir: string) => ({
+  state: join(dir, 'claim.json'),
+  manifest: join(dir, 'site/.well-known/oar-manifest.json'),
+  wellKnown: join(dir, 'site/.well-known/oar.json'),
+  repoProof: join(dir, 'repo/oar.json'),
+});
+
+function loadClaim(dir: string): { state: ClaimState; manifest: OarManifest } {
+  const p = claimPaths(dir);
+  if (!existsSync(p.state)) throw new Error(`No claim in ${dir}. Run \`oar claim prepare\` first.`);
+  const state = readJson(p.state) as ClaimState;
+  return { state, manifest: loadValidManifest(p.manifest, { appId: state.app_id, cluster: state.cluster }) };
+}
+
+const dirOpt = () => new Option('-d, --dir <dir>', 'claim directory').default('oar-claim');
+const collect = (value: string, previous: string[]) => [...previous, value];
+
+/** Print a summary; sign only when the operator passed --yes after reading it. */
+function confirmed(lines: string[], yes: boolean): boolean {
+  lines.forEach(l => console.log(l));
+  if (!yes) {
+    console.log('\nNothing was signed. Re-run with --yes to sign this.');
+    process.exitCode = 1;
+  }
+  return yes;
+}
+
+const claim = program.command('claim').description('register an existing app: prepare, check, register, link-program');
+
+claim
+  .command('prepare')
+  .description('derive the App ID and write the manifest and proof files to deploy')
+  .requiredOption('--creator <pubkey>', 'wallet that will sign `oar claim register` and pay about 0.0039 SOL rent')
+  .requiredOption('--name <name>', 'app name, 1 to 64 characters')
+  .option('--domain <host>', 'domain the app is served from (repeatable)', collect, [])
+  .option('--program <address>', 'program the app uses (repeatable)', collect, [])
+  .option('--repo <url>', 'source repository URL (repeatable)', collect, [])
+  .option('--category <category>', 'category (repeatable, 1 to 3; default other)', collect, [])
+  .option('--summary <text>', 'one sentence, up to 140 characters')
+  .option('--authority <pubkey>', 'record authority (default: the creator; a Squads vault is recommended for production)')
+  .option('--manifest-uri <uri>', 'where the manifest will be served (default: https://<first domain>/.well-known/oar-manifest.json)')
+  .option('--nonce <n>', 'nonce (default: the first unused one for this creator)')
+  .addOption(dirOpt())
+  .addOption(clusterOpt())
+  .addOption(rpcOpt())
+  .option('--force', 'overwrite files from an earlier prepare')
+  .action(async o => {
+    const cluster = parseCluster(o.cluster);
+    const creator = address(o.creator);
+    const { nonce, appId } =
+      o.nonce !== undefined
+        ? { nonce: BigInt(o.nonce), appId: await findAppId({ creator, nonce: BigInt(o.nonce) }) }
+        : await nextAppNonce(rpcFor(cluster, o.rpc), creator);
+    const domains = (o.domain as string[]).map(d => d.toLowerCase());
+    const manifestUri: string | undefined = o.manifestUri ?? (domains[0] && `https://${domains[0]}/.well-known/oar-manifest.json`);
+    if (!manifestUri) throw new Error('Pass --domain, or --manifest-uri for where the manifest will be served.');
+    const manifest: OarManifest = {
+      oar: '0.1',
+      app_id: appId,
+      cluster,
+      name: o.name,
+      ...(o.summary ? { summary: o.summary } : {}),
+      categories: (o.category.length ? o.category : ['other']) as Category[],
+      ...(domains.length ? { domains, links: { website: `https://${domains[0]}` } } : {}),
+      ...(o.repo.length ? { repositories: (o.repo as string[]).map(url => ({ url, role: 'app' as const })) } : {}),
+      ...(o.program.length ? { programs: (o.program as string[]).map(a => ({ address: address(a), cluster })) } : {}),
+    };
+    const v = validateManifest(manifest);
+    if (!v.valid) throw new Error(`The manifest would be invalid:\n  ${v.errors.join('\n  ')}`);
+
+    const p = claimPaths(o.dir);
+    const proof = buildProofFile([{ appId, cluster }]);
+    writeJson(p.manifest, manifest, o.force);
+    writeJson(p.wellKnown, proof, o.force);
+    if (o.repo.length) writeJson(p.repoProof, proof, o.force);
+    const state: ClaimState = { cluster, creator, nonce: nonce.toString(), app_id: appId, authority: o.authority ?? creator, manifest_uri: manifestUri };
+    writeJson(p.state, state, o.force);
+
+    console.log(`App ID  ${appId}  (${cluster}, creator ${creator}, nonce ${nonce})\n`);
+    let step = 1;
+    const onSite = domains.length > 0 && manifestUri.startsWith(`https://${domains[0]}/`);
+    if (domains.length) {
+      console.log(`${step++}. Deploy ${dirname(p.manifest)}/ to the site root of ${domains.map(d => `https://${d}`).join(', ')}, served with no redirects:`);
+      domains.forEach(d => console.log(`     https://${d}/.well-known/oar.json`));
+      if (onSite) console.log(`     ${manifestUri}`);
+    }
+    if (!onSite) console.log(`${step++}. Upload ${p.manifest} so that ${manifestUri} serves it.`);
+    if (o.repo.length) console.log(`${step++}. Commit ${p.repoProof} to the root of ${(o.repo as string[]).join(', ')} on the default branch.`);
+    console.log(`${step++}. oar claim check --dir ${o.dir}        (confirms the files before anything is signed)`);
+    console.log(`${step++}. oar claim register --dir ${o.dir} -k <creator keypair>`);
+    if (o.program.length) console.log(`${step++}. oar claim link-program <program> --dir ${o.dir} -k <upgrade authority keypair>   (or --squads <vault>)`);
+  });
+
+claim
+  .command('check')
+  .description('check the hosted manifest and every proof; signs nothing')
+  .addOption(dirOpt())
+  .addOption(rpcOpt())
+  .action(async o => {
+    const { state, manifest } = loadClaim(o.dir);
+    const appId = address(state.app_id);
+    const rpc = rpcFor(state.cluster, o.rpc);
+    const record = await fetchMaybeAppRecord(rpc, appId);
+    if (record.exists) {
+      const same = bytesEqual(record.data.manifestHash, hashManifest(manifest));
+      console.log(`${same ? '✓' : '·'} record     ${appId} is registered${same ? ' with this manifest' : ', pointing at a different manifest (use `oar update`)'}`);
+    } else {
+      console.log(`· record     ${appId} is not registered yet`);
+    }
+    const hosting = await checkManifestHosting(state.manifest_uri, manifest);
+    console.log(hosting.ok ? `✓ manifest   ${state.manifest_uri} serves this manifest` : `✗ manifest   ${hosting.detail}`);
+    for (const host of manifest.domains ?? []) {
+      const r = await checkDomain(host, appId, state.cluster);
+      console.log(`${mark[r.state]} domain     ${host}: ${r.state}${r.method ? ` via ${r.method}` : ''}${r.detail ? ` (${r.detail})` : ''}`);
+    }
+    for (const repo of manifest.repositories ?? []) {
+      const r = await checkRepository(repo.url, appId, state.cluster);
+      console.log(`${mark[r.state]} repository ${repo.url}: ${r.state}${r.detail ? ` (${r.detail})` : ''}`);
+    }
+    for (const p of manifest.programs ?? []) {
+      const progRpc = p.cluster === state.cluster ? rpc : rpcFor(p.cluster);
+      const prog = address(p.address);
+      const link = backlinkMatches(await fetchProgramBacklink(progRpc, prog), appId, state.cluster);
+      let signer = '';
+      if (link.state !== 'verified') {
+        const owner = await getProgramUpgradeAuthority(progRpc, prog).catch(() => null);
+        signer = !owner ? ' (not a deployed program)'
+          : owner.authority ? ` (sign with upgrade authority ${owner.authority}: oar claim link-program ${prog})`
+          : ' (frozen or not upgradeable: needs an issuer attestation)';
+      }
+      console.log(`${mark[link.state]} program    ${prog}: ${link.state}${link.detail && link.state !== 'verified' ? ` (${link.detail})` : ''}${signer}`);
+    }
+    if (!hosting.ok) {
+      console.error('\nNot ready: `oar claim register` refuses until the manifest above is served.');
+      process.exitCode = 1;
+    }
+  });
+
+claim
+  .command('register')
+  .description('create the App ID onchain, signed by the creator')
+  .addOption(dirOpt())
+  .addOption(rpcOpt())
+  .addOption(keypairOpt())
+  .option('--yes', 'sign after reading the summary')
+  .action(async o => {
+    const { state, manifest } = loadClaim(o.dir);
+    const signer = await loadKeypair(o.keypair);
+    if (signer.address !== state.creator) {
+      throw new Error(`This App ID derives from creator ${state.creator}; the keypair is ${signer.address}. Prepare again with --creator ${signer.address}.`);
+    }
+    const rpc = rpcFor(state.cluster, o.rpc);
+    const appId = address(state.app_id);
+    if ((await fetchMaybeAppRecord(rpc, appId)).exists) throw new Error(`${appId} is already registered. Use \`oar update\` to change its manifest.`);
+    const hosting = await checkManifestHosting(state.manifest_uri, manifest);
+    if (!hosting.ok) throw new Error(`Not registering: ${hosting.detail}`);
+    const nonce = BigInt(state.nonce);
+    const authority = address(state.authority);
+    const summary = describeRegistration({
+      appId, cluster: state.cluster, creator: signer.address, nonce, authority, manifestUri: state.manifest_uri, manifestSha256: hosting.sha256,
+    });
+    if (!confirmed(summary, o.yes)) return;
+    const ix = await getRegisterInstructionAsync({ creator: signer, nonce, authority, manifestUri: state.manifest_uri, manifestHash: hashManifest(manifest) });
+    assertRegistrationInstructions([ix]);
+    console.log(`\nRegistered ${appId}\nSignature ${await sendAndConfirm(rpc, signer, [ix])}`);
+  });
+
+claim
+  .command('link-program <program>')
+  .description("point a program back to this App ID, signed by the program's upgrade authority")
+  .addOption(dirOpt())
+  .addOption(new Option('-u, --rpc <url>', "RPC URL for the program's cluster"))
+  .addOption(keypairOpt())
+  .option('--squads <vault>', 'build an unsigned transaction for a Squads vault to approve, instead of signing')
+  .addOption(new Option('--encoding <encoding>', 'encoding for --squads').choices(['base58', 'base64']).default('base58'))
+  .option('--legacy', 'export a legacy transaction (Squads v3 accepts only legacy)')
+  .option('--yes', 'sign after reading the summary')
+  .action(async (prog: string, o) => {
+    const { state, manifest } = loadClaim(o.dir);
+    const claimed = (manifest.programs ?? []).find(p => p.address === prog);
+    if (!claimed) throw new Error(`${prog} is not listed in the manifest, so its backlink would not verify. Add it to the manifest first.`);
+    const rpc = rpcFor(claimed.cluster, o.rpc);
+    const signer = o.squads ? createNoopSigner(address(o.squads)) : await loadKeypair(o.keypair);
+    const plan = await getProgramLinkInstructions(rpc, {
+      program: address(prog), appId: address(state.app_id), cluster: state.cluster, authority: signer, payer: signer,
+    });
+    const summary = describeProgramLink(plan, signer.address);
+    if (plan.action === 'unchanged') return summary.forEach(l => console.log(l));
+    assertRegistrationInstructions(plan.instructions);
+    if (o.squads) {
+      summary.forEach(l => console.log(l));
+      const { value } = await rpc.getLatestBlockhash({ commitment: 'confirmed' }).send();
+      const tx = exportUnsignedTransaction(plan.instructions, signer.address, value, { version: o.legacy ? 'legacy' : 0 });
+      console.log(`\nImport this ${o.encoding} transaction into Squads as a proposal for vault ${o.squads}. The vault pays the rent, so it needs SOL.\n`);
+      console.log(tx[o.encoding as 'base58' | 'base64']);
+      return;
+    }
+    if (!confirmed(summary, o.yes)) return;
+    console.log(`\nLinked ${prog} to ${state.app_id}\nSignature ${await sendAndConfirm(rpc, signer as KeyPairSigner, plan.instructions)}`);
+  });
 
 program.parseAsync().catch(e => {
   console.error(`Error: ${(e as Error).message}`);

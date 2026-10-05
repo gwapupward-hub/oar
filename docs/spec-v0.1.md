@@ -162,7 +162,7 @@ Categories: `defi`, `dex`, `lending`, `payments`, `wallet`, `nft`, `marketplace`
 
 Because the hash covers the canonical form, hosts can pretty-print or reorder keys without breaking it.
 
-**Hosting:** `ar://` or `ipfs://` is RECOMMENDED. `https://` is allowed; a changed file simply fails the hash check. Clients SHOULD time out after 10 seconds and follow at most 3 redirects for the manifest itself.
+**Hosting:** `ar://`, `ipfs://`, or `https://<a listed domain>/.well-known/oar-manifest.json` is RECOMMENDED; the last ships in the same deploy as the domain proof. Any other `https://` URL is allowed. Because the record commits to the hash, the host affects availability only: a changed file simply fails the hash check. Clients SHOULD time out after 10 seconds and follow at most 3 redirects for the manifest itself.
 
 **A manifest is valid only if** the hash matches, it passes the schema for its declared version, `app_id` equals the record address and `cluster` equals the record's cluster. Binding `app_id` stops a copied manifest from working for anyone else's record.
 
@@ -365,6 +365,7 @@ The reference SDK is a TypeScript package on `@solana/kit`; the CLI is a thin wr
 | Link proofs | `fetchProgramBacklink(rpc, program)`, `checkDomain(host, appId, cluster)`, `checkRepository(url, appId, cluster)` |
 | Attestations | `deriveAttestationNonce(schema, appId, subject, { appCluster, programCluster? })` |
 | Resolution | `resolveApp(rpc, appId, opts)`, `resolveProgram(rpc, program, opts)` |
+| Registration (`@open-app-registry/sdk/register`, no Node APIs) | `nextAppNonce`, `describeRegistration`, `getProgramUpgradeAuthority`, `getProgramLinkInstructions`, `describeProgramLink`, `exportUnsignedTransaction`, `assertRegistrationInstructions`; plus `checkManifestHosting` in the main entry |
 
 **CLI commands**
 
@@ -383,6 +384,7 @@ The reference SDK is a TypeScript package on `@solana/kit`; the CLI is a thin wr
 | `oar verify-domain <host> --app <id>` | Runs the domain check |
 | `oar inspect <appId>` | Prints `resolveApp` output |
 | `oar resolve-program <program>` | Prints `resolveProgram` output |
+| `oar claim prepare` / `check` / `register` / `link-program` | Guided registration of an existing app (`docs/REGISTERING.md`): derives the App ID, writes the manifest and proofs, refuses to register until the hosted manifest matches, previews every transaction, and exports Squads proposals |
 
 ## Governance, versioning and rollout
 
