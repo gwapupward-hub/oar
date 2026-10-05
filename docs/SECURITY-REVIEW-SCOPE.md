@@ -12,6 +12,7 @@ This is for the external reviewer who will clear the mainnet gate in `docs/PRODU
 | IDL | `idl/oar_registry.json`, SHA-256 `15ab0399…220057`, published on devnet through Program Metadata (seed `idl`) |
 | SDK verifier | `packages/sdk/src/{attestations,links,resolve,manifest,http}.ts` at the head of the review branch |
 | CLI signing path | `packages/cli/src/{tx,index}.ts` |
+| Registration builders | `packages/sdk/src/register.ts` (exported as `@open-app-registry/sdk/register` for browser wallets), `checkManifestHosting` in `manifest.ts`, and the `oar claim` commands |
 | Release and operator tooling | `scripts/check-release.mjs`, `scripts/package-release.py`, `scripts/release.mjs`, `scripts/devnet/*.mjs`, `.github/workflows/{ci,release}.yml`, `deny.toml` |
 | Release candidate | `v0.1.1-rc.1` (GitHub pre-release). Its assets carry `SHA256SUMS`, `release-manifest.json` and the dependency reports |
 
@@ -79,6 +80,7 @@ Live devnet evidence:
 ## Requested depth
 
 - **Program:** account validation (owner, discriminator, PDA and bump, signer, `has_one`), the authority state machine, rent and size, arithmetic, Anchor 1.2.0 code generation, and upgrade-path risks.
+- **Registration builders:** the instructions are what the previews describe. They also refuse a non-upgrade-authority signer and a frozen backlink, and nothing outside the allowed registry programs can be signed or exported.
 - **SDK:** every path that can produce `verified` or `attested`. That includes RPC and decoder trust, Program Metadata parsing and decompression, HTTP/DNS rebinding and redirect handling, RFC 8785 hashing and JSON parsing differences, and time handling.
 - **Supply chain:** the npm and Cargo lockfiles, the builder image, and CI workflow permissions.
 - **Deliverable:** for each finding, give severity, evidence, exploit path, remediation and a regression test, then a GO, GO WITH CONTROLS or NO-GO verdict for mainnet.

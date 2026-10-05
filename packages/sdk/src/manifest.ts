@@ -43,16 +43,8 @@ export interface OarManifest {
   extensions?: Record<string, Record<string, unknown>>;
 }
 
-export interface ProofFile {
-  oar: '0.1';
-  apps: { app_id: string; cluster: Cluster }[];
-}
-
-export interface ProgramLink {
-  oar: '0.1';
-  app: string;
-  cluster: Cluster;
-}
+export type { ProgramLink, ProofFile } from './proofs.js';
+export { buildProgramLink, buildProofFile } from './proofs.js';
 
 const ajv = new Ajv2020({ allErrors: true, strict: true });
 const validateManifestSchema = ajv.compile(manifestSchema);
@@ -159,6 +151,34 @@ export async function fetchManifest(uri: string, opts: FetchManifestOptions = {}
   return parseJsonStrict(text);
 }
 
+export type HostingCheck =
+  | { ok: true; sha256: string }
+  | { ok: false; reason: 'unreachable' | 'different'; detail: string };
+
+/**
+ * Before registering: fetch the manifest from where the record will point and confirm it is byte-for-byte the
+ * manifest being committed (same canonical hash). Registering first and hosting later would leave the record showing
+ * "metadata unavailable".
+ */
+export async function checkManifestHosting(uri: string, manifest: unknown, opts: FetchManifestOptions = {}): Promise<HostingCheck> {
+  let hosted: unknown;
+  try {
+    hosted = await fetchManifest(uri, opts);
+  } catch (e) {
+    return { ok: false, reason: 'unreachable', detail: `${uri}: ${(e as Error).message}` };
+  }
+  const expected = hashManifestHex(manifest);
+  let served: string;
+  try {
+    served = hashManifestHex(hosted);
+  } catch (e) {
+    return { ok: false, reason: 'different', detail: `${uri} does not serve a manifest that can be hashed (${(e as Error).message})` };
+  }
+  return served === expected
+    ? { ok: true, sha256: expected }
+    : { ok: false, reason: 'different', detail: `${uri} serves a manifest with SHA-256 ${served}, not ${expected}. Deploy the current file.` };
+}
+
 export type ManifestCheck =
   | { ok: true; manifest: OarManifest }
   | { ok: false; reason: 'hash-mismatch' | 'schema' | 'app-id-mismatch' | 'cluster-mismatch'; errors?: string[] };
@@ -177,10 +197,3 @@ export function checkManifest(
   return { ok: true, manifest: m };
 }
 
-export function buildProgramLink(appId: string, cluster: Cluster): ProgramLink {
-  return { oar: '0.1', app: appId, cluster };
-}
-
-export function buildProofFile(apps: { appId: string; cluster: Cluster }[]): ProofFile {
-  return { oar: '0.1', apps: apps.map(a => ({ app_id: a.appId, cluster: a.cluster })) };
-}

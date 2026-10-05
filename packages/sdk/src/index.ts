@@ -7,6 +7,7 @@ export * from './manifest.js';
 export * from './links.js';
 export * from './attestations.js';
 export * from './resolve.js';
+export * from './register.js';
 export { HttpCheckError } from './http.js';
 
 import type { Address } from '@solana/kit';
