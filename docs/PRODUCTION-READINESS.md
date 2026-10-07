@@ -109,6 +109,7 @@ The first registration through the `/register` wizard, from a phone inside the w
 | Register transaction | `5SZKCHLH…D62c`: Compute Budget (added by the wallet), then OAR registry; System inner only. Nothing outside `REGISTRATION_PROGRAMS` |
 | Manifest | "GwapSpot OS", fetched, hash matches |
 | Finding | The manifest was saved at the repository's root `oar.json`, the proof path, so the repository claim is unverified, and its URI follows `main`. The wizard now refuses manifests at `oar.json`, suggests commit-pinned links, and has an Update step to repoint a record |
+| Follow-up | Fixed from the phone with the Update step (`51sHcQeU…E2Fy`, Compute Budget and OAR registry only): revision 1, same manifest hash, repository claim **verified**. The URI still follows `main`; pin it to a commit before any mainnet use |
 
 ## Repository hardening and release candidate — October 4, 2026
 
