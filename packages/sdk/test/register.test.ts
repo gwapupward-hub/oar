@@ -31,6 +31,7 @@ import {
 import {
   PROGRAM_METADATA_PROGRAM_ID,
   assertRegistrationInstructions,
+  buildClaimFiles,
   buildProgramLink,
   checkManifestHosting,
   describeProgramLink,
@@ -42,6 +43,7 @@ import {
   hashManifest,
   hashManifestHex,
   nextAppNonce,
+  validateManifest,
   type Cluster,
 } from '../src/index.js';
 import { createSvm, fundedSigner, send, setRawAccount, stubFetch, svmRpc } from './helpers.js';
@@ -264,4 +266,28 @@ test('hosting check confirms the served manifest is the one being committed', as
   assert.ok(!missing.ok && missing.reason === 'unreachable');
   const duplicate = await checkManifestHosting(uri, manifest, served('{"oar":"0.1","oar":"0.1"}'));
   assert.ok(!duplicate.ok && duplicate.reason === 'unreachable' && /Duplicate JSON key/.test(duplicate.detail));
+});
+
+test('claim files: a valid manifest, one proof for every domain and repository, and the default manifest location', async () => {
+  const creator = (await generateKeyPairSigner()).address;
+  const program = (await generateKeyPairSigner()).address;
+  const appId = await findAppId({ creator, nonce: 0 });
+  const files = buildClaimFiles({
+    appId, cluster: CLUSTER, name: 'Example', categories: ['defi'], domains: [' MyApp.xyz '], programs: [program],
+    repositories: ['https://github.com/example/app'],
+  });
+  assert.equal(validateManifest(files.manifest).valid, true);
+  assert.equal(files.manifestUri, 'https://myapp.xyz/.well-known/oar-manifest.json');
+  assert.deepEqual(files.manifest.domains, ['myapp.xyz']);
+  assert.deepEqual(files.manifest.links, { website: 'https://myapp.xyz' });
+  assert.deepEqual(files.manifest.programs, [{ address: program, cluster: CLUSTER }]);
+  assert.deepEqual(files.manifest.repositories, [{ url: 'https://github.com/example/app', role: 'app' }]);
+  assert.deepEqual(files.wellKnown, { oar: '0.1', apps: [{ app_id: appId, cluster: CLUSTER }] });
+  assert.deepEqual(files.repoProof, files.wellKnown);
+
+  const minimal = buildClaimFiles({ appId, cluster: CLUSTER, name: 'Example', manifestUri: 'ar://abc' });
+  assert.deepEqual(minimal.manifest.categories, ['other']);
+  assert.equal(minimal.repoProof, undefined);
+  assert.equal('domains' in minimal.manifest, false);
+  assert.throws(() => buildClaimFiles({ appId, cluster: CLUSTER, name: 'Example' }), /Give a domain, or a URI/);
 });
