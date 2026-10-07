@@ -88,6 +88,8 @@ test('self-registration manifest and repo proof are valid and bound to the deriv
   assert.equal(appId, 'Bu1JCyxiVDdDGjtNLLkKhq6KZv6E4LcUgqNkS5t5Nf2K');
   const m = oarManifest({ appId, programId: 'oariw8YXcYJh9sa9VcmBU3ZCdo2WVGMYPsLjEuUxfrC' });
   assert.deepEqual(s.validateManifest(m), { valid: true, errors: [] });
+  assert.deepEqual(m.domains, ['oarprotocol.xyz']);
+  assert.equal(m.links.website, 'https://oarprotocol.xyz');
   assert.ok(s.validateProofFile(s.buildProofFile([{ appId, cluster: CLUSTER }])).valid);
   assert.equal(s.repoProofUrl(m.repositories[0].url), 'https://raw.githubusercontent.com/gwapupward-hub/oar/HEAD/oar.json');
   assert.match(manifestUri('a'.repeat(40)), /^https:\/\/raw\.githubusercontent\.com\/gwapupward-hub\/oar\/a{40}\/release\/devnet\/oar\.manifest\.json$/);

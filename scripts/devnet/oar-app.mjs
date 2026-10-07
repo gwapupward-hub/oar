@@ -36,7 +36,8 @@ export function buildManifest({ appId, programId }) {
     summary: 'Onchain application identity for Solana: one App ID per app, with every link proven from both sides.',
     categories: ['infrastructure', 'identity'],
     publisher: { name: 'GWAP' },
-    links: { github: 'https://github.com/gwapupward-hub' },
+    domains: ['oarprotocol.xyz'],
+    links: { website: 'https://oarprotocol.xyz', github: 'https://github.com/gwapupward-hub' },
     repositories: [{ url: REPO, role: 'program' }],
     programs: [{ address: programId, cluster: CLUSTER, name: 'OAR Registry', role: 'registry' }],
     security: {

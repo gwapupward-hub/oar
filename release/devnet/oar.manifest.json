@@ -11,7 +11,11 @@
   "publisher": {
     "name": "GWAP"
   },
+  "domains": [
+    "oarprotocol.xyz"
+  ],
   "links": {
+    "website": "https://oarprotocol.xyz",
     "github": "https://github.com/gwapupward-hub"
   },
   "repositories": [
