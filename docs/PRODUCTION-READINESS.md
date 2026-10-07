@@ -99,6 +99,17 @@ Limits:
 - The rehearsal used the SDK as it was on `main` before the credential-signer check (OAR-IR-01) was added. Every attestation it judged `attested` was signed by the credential's only authorized signer, so that check would not change the outcome. Signer removal is covered by LiteSVM regression tests, not by this run.
 - It proves OAR's SAS semantics with a TEST credential. No production issuer is provisioned, and the default trust list stays empty.
 
+## Wallet registration rehearsal — October 7, 2026
+
+The first registration through the `/register` wizard, from a phone inside the wallet app's browser. Evidence: `release/evidence/devnet-phone-register-2026-10-07-GhKo1epB.json`, read from devnet by oar-web's read-only "Inspect a devnet address" workflow.
+
+| Item | Value |
+| --- | --- |
+| App ID | `GhKo1epBh7xn5iZpHYt7Mh6bzRAMo4bpd43zu9HL5gyb` (creator and authority `BJmFM4k7…gSwJ`, nonce 0), Active |
+| Register transaction | `5SZKCHLH…D62c`: Compute Budget (added by the wallet), then OAR registry; System inner only. Nothing outside `REGISTRATION_PROGRAMS` |
+| Manifest | "GwapSpot OS", fetched, hash matches |
+| Finding | The manifest was saved at the repository's root `oar.json`, the proof path, so the repository claim is unverified, and its URI follows `main`. The wizard now refuses manifests at `oar.json`, suggests commit-pinned links, and has an Update step to repoint a record |
+
 ## Repository hardening and release candidate — October 4, 2026
 
 This is the checkpoint for `v0.1.1-rc.1`: the protocol version clients such as the OAR web explorer build against.

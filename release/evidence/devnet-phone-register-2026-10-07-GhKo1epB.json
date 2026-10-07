@@ -1,0 +1,48 @@
+{
+  "kind": "wallet-registration-rehearsal",
+  "cluster": "solana:devnet",
+  "flow": "https://oarprotocol.xyz/register on a phone, inside the wallet app's browser (Wallet Standard, solana:signTransaction)",
+  "appId": "GhKo1epBh7xn5iZpHYt7Mh6bzRAMo4bpd43zu9HL5gyb",
+  "creator": "BJmFM4k7Q32CiCYSdoYkAhXdD5Sk3BegMh2cbEAsgSwJ",
+  "nonce": 0,
+  "authority": "BJmFM4k7Q32CiCYSdoYkAhXdD5Sk3BegMh2cbEAsgSwJ",
+  "appIdDerivesFromCreatorAndNonce": true,
+  "status": "Active",
+  "revision": 0,
+  "createdSlot": 508326172,
+  "manifestUri": "https://raw.githubusercontent.com/gwapupward-hub/ppv/main/oar.json",
+  "manifestSha256": "180d2c062ba5aef8f27a527e5b39442ea1250a95a5b1ead26c1f81955a4661f8",
+  "manifest": { "ok": true, "name": "GwapSpot OS", "detail": "fetched; canonical hash equals the onchain hash" },
+  "claims": [
+    {
+      "kind": "repository",
+      "subject": "https://github.com/gwapupward-hub/ppv",
+      "state": "unverified",
+      "detail": "the repository's root oar.json holds the manifest, not the proof file, so the proof cannot validate"
+    }
+  ],
+  "registerTransaction": {
+    "signature": "5SZKCHLHZsSHaskEr2VJ3kHED7K4skkrnkKkq7d76X5CRVd8ZSVVRemr9AmbAEAWZHb7sN2awQuzzVvBizcgD62c",
+    "slot": 508326172,
+    "succeeded": true,
+    "feePayer": "BJmFM4k7Q32CiCYSdoYkAhXdD5Sk3BegMh2cbEAsgSwJ",
+    "topLevelPrograms": [
+      "ComputeBudget111111111111111111111111111111",
+      "ComputeBudget111111111111111111111111111111",
+      "oariw8YXcYJh9sa9VcmBU3ZCdo2WVGMYPsLjEuUxfrC"
+    ],
+    "innerPrograms": ["11111111111111111111111111111111"],
+    "note": "The wallet added Compute Budget instructions (priority fee); no program outside REGISTRATION_PROGRAMS"
+  },
+  "findings": [
+    "Phone registration works end to end through the wallet app's in-app browser.",
+    "The manifest was saved at the repository proof path (oar.json), breaking the repository claim. oar-web now refuses a manifest URI ending in oar.json and offers an Update step to repoint the record.",
+    "The manifest URI follows a branch (main); a later edit to the file would stop it matching the onchain hash. The wizard now suggests a commit-pinned link."
+  ],
+  "verifiedBy": {
+    "workflow": "gwapupward-hub/oar-web Inspect a devnet address",
+    "run": "https://github.com/gwapupward-hub/oar-web/actions/runs/37570409457",
+    "commit": "f9eedc093df64fe96f2cf9078b2f0a876eeb98bc",
+    "checkedAt": "2026-10-07T04:13:42Z"
+  }
+}
