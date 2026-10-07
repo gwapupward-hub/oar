@@ -12,7 +12,11 @@
   "createdSlot": 508326172,
   "manifestUri": "https://raw.githubusercontent.com/gwapupward-hub/ppv/main/oar.json",
   "manifestSha256": "180d2c062ba5aef8f27a527e5b39442ea1250a95a5b1ead26c1f81955a4661f8",
-  "manifest": { "ok": true, "name": "GwapSpot OS", "detail": "fetched; canonical hash equals the onchain hash" },
+  "manifest": {
+    "ok": true,
+    "name": "GwapSpot OS",
+    "detail": "fetched; canonical hash equals the onchain hash"
+  },
   "claims": [
     {
       "kind": "repository",
@@ -31,7 +35,9 @@
       "ComputeBudget111111111111111111111111111111",
       "oariw8YXcYJh9sa9VcmBU3ZCdo2WVGMYPsLjEuUxfrC"
     ],
-    "innerPrograms": ["11111111111111111111111111111111"],
+    "innerPrograms": [
+      "11111111111111111111111111111111"
+    ],
     "note": "The wallet added Compute Budget instructions (priority fee); no program outside REGISTRATION_PROGRAMS"
   },
   "findings": [
@@ -44,5 +50,43 @@
     "run": "https://github.com/gwapupward-hub/oar-web/actions/runs/37570409457",
     "commit": "f9eedc093df64fe96f2cf9078b2f0a876eeb98bc",
     "checkedAt": "2026-10-07T04:13:42Z"
+  },
+  "followUp": {
+    "action": "Moved the manifest off the repository proof path with the /register Update card, signed from the phone",
+    "updateTransaction": {
+      "signature": "51sHcQeU52FXHKG7gwjfJDbRBJF3hkLLy7GjqQoaviaQBGaQSWo7TFSqabhfQLddV1mZxPextCo2ZaUsVbNEE2Fy",
+      "slot": 508345782,
+      "succeeded": true,
+      "feePayer": "BJmFM4k7Q32CiCYSdoYkAhXdD5Sk3BegMh2cbEAsgSwJ",
+      "topLevelPrograms": [
+        "ComputeBudget111111111111111111111111111111",
+        "ComputeBudget111111111111111111111111111111",
+        "oariw8YXcYJh9sa9VcmBU3ZCdo2WVGMYPsLjEuUxfrC"
+      ],
+      "innerPrograms": []
+    },
+    "revision": 1,
+    "manifestUri": "https://raw.githubusercontent.com/gwapupward-hub/ppv/refs/heads/main/oar-manifest.json",
+    "manifestSha256": "180d2c062ba5aef8f27a527e5b39442ea1250a95a5b1ead26c1f81955a4661f8",
+    "manifest": {
+      "ok": true,
+      "name": "GwapSpot OS",
+      "detail": "same content and hash as at registration"
+    },
+    "claims": [
+      {
+        "kind": "repository",
+        "subject": "https://github.com/gwapupward-hub/ppv",
+        "state": "verified",
+        "detail": "root oar.json now holds the proof file"
+      }
+    ],
+    "open": "The manifest URI still follows the main branch (refs/heads/main); a commit-pinned URI is recommended before any mainnet use.",
+    "verifiedBy": {
+      "workflow": "gwapupward-hub/oar-web Inspect a devnet address",
+      "run": "https://github.com/gwapupward-hub/oar-web/actions/runs/37575841763",
+      "commit": "84916fe4913898fdd7c2e8ac3a786f409e969a7d",
+      "checkedAt": "2026-10-07T05:21:09Z"
+    }
   }
 }
