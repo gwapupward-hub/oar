@@ -44,7 +44,8 @@ import {
 import { APP_RECORD_SIZE, OAR_PROGRAM_ID, PROGRAM_METADATA_PROGRAM_ID, PROGRAM_METADATA_SEED, type Cluster } from './constants.js';
 import { findAppRecordPda } from './generated/index.js';
 import { parseJsonStrict } from './json.js';
-import { buildProgramLink } from './proofs.js';
+import type { Category, OarManifest } from './manifest.js';
+import { buildProgramLink, buildProofFile, type ProofFile } from './proofs.js';
 
 const SYSTEM_PROGRAM_ID = address('11111111111111111111111111111111');
 const COMPUTE_BUDGET_PROGRAM_ID = address('ComputeBudget111111111111111111111111111111');
@@ -80,6 +81,52 @@ export async function nextAppNonce(
     if (!account.exists) return { nonce, appId };
   }
   throw new Error(`No free nonce between ${from} and ${from + limit - 1n} for ${creator}; pass a higher starting nonce.`);
+}
+
+export interface ClaimInput {
+  appId: Address;
+  cluster: Cluster;
+  name: string;
+  summary?: string;
+  categories?: Category[];
+  /** Hostnames; lowercased here. The first one hosts the manifest by default. */
+  domains?: string[];
+  programs?: Address[];
+  repositories?: string[];
+  /** Where the manifest will be served; default `https://<first domain>/.well-known/oar-manifest.json`. */
+  manifestUri?: string;
+}
+
+export interface ClaimFiles {
+  /** Not yet validated: run `validateManifest` before hosting or registering it. */
+  manifest: OarManifest;
+  /** Serve at `https://<each domain>/.well-known/oar.json`. */
+  wellKnown: ProofFile;
+  /** Commit as `oar.json` at the root of each repository; present when repositories are listed. */
+  repoProof?: ProofFile;
+  manifestUri: string;
+}
+
+/** The manifest and proof files a team deploys before registering. Programs are claimed on the App ID's cluster. */
+export function buildClaimFiles(input: ClaimInput): ClaimFiles {
+  const domains = (input.domains ?? []).map(d => d.trim().toLowerCase()).filter(Boolean);
+  const repositories = (input.repositories ?? []).map(r => r.trim()).filter(Boolean);
+  const programs = input.programs ?? [];
+  const manifestUri = input.manifestUri?.trim() || (domains[0] ? `https://${domains[0]}/.well-known/oar-manifest.json` : '');
+  if (!manifestUri) throw new Error('Give a domain, or a URI where the manifest will be served.');
+  const manifest: OarManifest = {
+    oar: '0.1',
+    app_id: input.appId,
+    cluster: input.cluster,
+    name: input.name,
+    ...(input.summary ? { summary: input.summary } : {}),
+    categories: input.categories?.length ? input.categories : ['other'],
+    ...(domains.length ? { domains, links: { website: `https://${domains[0]}` } } : {}),
+    ...(repositories.length ? { repositories: repositories.map(url => ({ url, role: 'app' as const })) } : {}),
+    ...(programs.length ? { programs: programs.map(a => ({ address: a, cluster: input.cluster })) } : {}),
+  };
+  const proof = buildProofFile([{ appId: input.appId, cluster: input.cluster }]);
+  return { manifest, wellKnown: proof, ...(repositories.length ? { repoProof: proof } : {}), manifestUri };
 }
 
 export interface RegistrationSummary {

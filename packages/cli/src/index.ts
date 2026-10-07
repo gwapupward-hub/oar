@@ -7,6 +7,7 @@ import {
   AppStatus,
   assertRegistrationInstructions,
   backlinkMatches,
+  buildClaimFiles,
   buildProgramLink,
   buildProofFile,
   bytesEqual,
@@ -43,7 +44,7 @@ import { loadKeypair, parseCluster, rpcFor, sendAndConfirm } from './tx.js';
 const program = new Command()
   .name('oar')
   .description('Open App Registry: onchain application identity for Solana')
-  .version('0.1.1-rc.1');
+  .version('0.1.1-rc.2');
 
 const clusterOpt = () => new Option('-c, --cluster <cluster>', 'mainnet | devnet | testnet').default('devnet');
 const rpcOpt = () => new Option('-u, --rpc <url>', 'RPC URL (defaults to the public endpoint for the cluster)');
@@ -395,27 +396,19 @@ claim
         ? { nonce: BigInt(o.nonce), appId: await findAppId({ creator, nonce: BigInt(o.nonce) }) }
         : await nextAppNonce(rpcFor(cluster, o.rpc), creator);
     const domains = (o.domain as string[]).map(d => d.toLowerCase());
-    const manifestUri: string | undefined = o.manifestUri ?? (domains[0] && `https://${domains[0]}/.well-known/oar-manifest.json`);
-    if (!manifestUri) throw new Error('Pass --domain, or --manifest-uri for where the manifest will be served.');
-    const manifest: OarManifest = {
-      oar: '0.1',
-      app_id: appId,
-      cluster,
-      name: o.name,
-      ...(o.summary ? { summary: o.summary } : {}),
-      categories: (o.category.length ? o.category : ['other']) as Category[],
-      ...(domains.length ? { domains, links: { website: `https://${domains[0]}` } } : {}),
-      ...(o.repo.length ? { repositories: (o.repo as string[]).map(url => ({ url, role: 'app' as const })) } : {}),
-      ...(o.program.length ? { programs: (o.program as string[]).map(a => ({ address: address(a), cluster })) } : {}),
-    };
-    const v = validateManifest(manifest);
+    if (!domains.length && !o.manifestUri) throw new Error('Pass --domain, or --manifest-uri for where the manifest will be served.');
+    const files = buildClaimFiles({
+      appId, cluster, name: o.name, summary: o.summary, categories: o.category as Category[], domains,
+      programs: (o.program as string[]).map(a => address(a)), repositories: o.repo, manifestUri: o.manifestUri,
+    });
+    const manifestUri = files.manifestUri;
+    const v = validateManifest(files.manifest);
     if (!v.valid) throw new Error(`The manifest would be invalid:\n  ${v.errors.join('\n  ')}`);
 
     const p = claimPaths(o.dir);
-    const proof = buildProofFile([{ appId, cluster }]);
-    writeJson(p.manifest, manifest, o.force);
-    writeJson(p.wellKnown, proof, o.force);
-    if (o.repo.length) writeJson(p.repoProof, proof, o.force);
+    writeJson(p.manifest, files.manifest, o.force);
+    writeJson(p.wellKnown, files.wellKnown, o.force);
+    if (files.repoProof) writeJson(p.repoProof, files.repoProof, o.force);
     const state: ClaimState = { cluster, creator, nonce: nonce.toString(), app_id: appId, authority: o.authority ?? creator, manifest_uri: manifestUri };
     writeJson(p.state, state, o.force);
 

@@ -14,7 +14,7 @@ This is for the external reviewer who will clear the mainnet gate in `docs/PRODU
 | CLI signing path | `packages/cli/src/{tx,index}.ts` |
 | Registration builders | `packages/sdk/src/register.ts` (exported as `@open-app-registry/sdk/register` for browser wallets), `checkManifestHosting` in `manifest.ts`, and the `oar claim` commands |
 | Release and operator tooling | `scripts/check-release.mjs`, `scripts/package-release.py`, `scripts/release.mjs`, `scripts/devnet/*.mjs`, `.github/workflows/{ci,release}.yml`, `deny.toml` |
-| Release candidate | `v0.1.1-rc.1` (GitHub pre-release). Its assets carry `SHA256SUMS`, `release-manifest.json` and the dependency reports |
+| Release candidate | `v0.1.1-rc.2` (GitHub pre-release; `v0.1.1-rc.1` before the registration builders). Its assets carry `SHA256SUMS`, `release-manifest.json` and the dependency reports |
 
 The final mainnet source commit and artifact hash replace these pins when they are approved. The review must cover that exact commit and binary.
 
