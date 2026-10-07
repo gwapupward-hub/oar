@@ -1,6 +1,6 @@
 {
   "name": "@open-app-registry/sdk",
-  "version": "0.1.1-rc.1",
+  "version": "0.1.1-rc.2",
   "description": "TypeScript SDK for the Open App Registry (OAR): resolve, verify and register Solana application identities",
   "license": "Apache-2.0",
   "type": "module",
