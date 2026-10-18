@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, existsSync, readFileSync, rmSync, readdirSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, existsSync, readFileSync, rmSync, readdirSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
@@ -28,6 +28,8 @@ test('starter generator produces a complete but unsigned Next.js project', () =>
   assert.deepEqual(cfg.repositories, ['https://github.com/example/example-app']);
   assert.ok(existsSync(join(project, 'src/app/page.tsx')));
   assert.ok(existsSync(join(project, 'scripts/prepare-oar.mjs')));
+  assert.ok(existsSync(join(project, 'scripts/import-anchor-programs.mjs')));
+  assert.ok(existsSync(join(project, 'src/lib/oar.ts')));
   assert.ok(!existsSync(join(project, 'public/.well-known/oar.json')),
     'proofs must not be written before creator public address is provided');
   assert.ok(!readdirSync(project).some(p => p.includes('keypair')));
@@ -88,3 +90,39 @@ test('invalid config cannot produce a valid-looking manifest', () => withTemp(tm
   assert.ok(!existsSync(join(project, 'public/.well-known/oar-manifest.json')));
 }));
 
+test('Anchor adapter previews only, imports public Devnet addresses after approval, and protects existing links', () => withTemp(tmp => {
+  assert.equal(run(tmp, cli, ['with-anchor', '--domain', 'example.org']).status, 0);
+  const project = join(tmp, 'with-anchor');
+  const anchorWorkspace = join(tmp, 'anchor');
+  mkdirSync(anchorWorkspace);
+  const anchorToml = join(anchorWorkspace, 'Anchor.toml');
+  const id = 'oariw8YXcYJh9sa9VcmBU3ZCdo2WVGMYPsLjEuUxfrC';
+  writeFileSync(anchorToml, '[programs.localnet]\nlocal = "11111111111111111111111111111111"\n[programs.devnet]\nmy_program = "' + id + '"\n');
+  const importer = join(project, 'scripts/import-anchor-programs.mjs');
+  const params = ['--workspace', anchorWorkspace];
+  const preview = run(project, importer, params);
+  assert.equal(preview.status, 0, preview.stderr);
+  assert.match(preview.stdout, /Preview only/);
+  const configPath = join(project, 'oar.config.json');
+  assert.deepEqual(JSON.parse(readFileSync(configPath, 'utf8')).programs, []);
+  const approve = run(project, importer, [...params, '--yes']);
+  assert.equal(approve.status, 0, approve.stderr);
+  assert.deepEqual(JSON.parse(readFileSync(configPath, 'utf8')).programs, [id]);
+  assert.equal(run(project, importer, [...params, '--yes']).status, 0);
+  writeFileSync(anchorToml, '[programs.devnet]\nsecond = "' + creator + '"\n');
+  assert.notEqual(run(project, importer, [...params, '--yes']).status, 0);
+  assert.deepEqual(JSON.parse(readFileSync(configPath, 'utf8')).programs, [id]);
+  assert.equal(run(project, importer, [...params, '--yes', '--replace']).status, 0);
+  assert.deepEqual(JSON.parse(readFileSync(configPath, 'utf8')).programs, [creator]);
+  writeFileSync(anchorToml, '[programs.devnet]\nduplicate = "' + creator + '"\nduplicate = "' + id + '"\n');
+  assert.notEqual(run(project, importer, [...params, '--yes', '--replace']).status, 0);
+  assert.deepEqual(JSON.parse(readFileSync(configPath, 'utf8')).programs, [creator]);
+}));
+
+test('Anchor adapter rejects malformed config, missing files and unknown options', () => withTemp(tmp => {
+  assert.equal(run(tmp, cli, ['invalid-anchor', '--domain', 'example.org']).status, 0);
+  const project = join(tmp, 'invalid-anchor');
+  const importer = join(project, 'scripts/import-anchor-programs.mjs');
+  assert.notEqual(run(project, importer, ['--bad']).status, 0);
+  assert.notEqual(run(project, importer, ['--workspace', tmp]).status, 0);
+}));
