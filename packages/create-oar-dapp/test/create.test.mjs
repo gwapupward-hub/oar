@@ -135,8 +135,8 @@ test('standalone Solana CLI template contains defaults, metadata and no pre-gene
   const cfgPath = join(direct, 'oar.config.json');
   const cfg = JSON.parse(readFileSync(cfgPath, 'utf8'));
   assert.equal(pkg.usecase, 'Starter');
-  assert.equal(pkg['create-solana-dapp'].rename['OAR Starter App'].to, '{{name}}');
-  assert.ok(pkg['create-solana-dapp'].rename['OAR Starter App'].paths.includes('oar.config.json'));
+  assert.ok(Array.isArray(pkg['create-solana-dapp'].instructions));
+  assert.equal(pkg['create-solana-dapp'].rename, undefined);
   assert.equal(cfg.standard, '0.1');
   assert.equal(cfg.cluster, 'solana:devnet');
   assert.equal(cfg.name, 'OAR Starter App');

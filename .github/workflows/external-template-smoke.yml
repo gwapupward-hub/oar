@@ -46,7 +46,7 @@ jobs:
           assert.equal(pkg.name, 'smoke-external');
           assert.equal(cfg.standard, '0.1');
           assert.equal(cfg.cluster, 'solana:devnet');
-          assert.equal(cfg.name, 'Smoke External');
+          assert.equal(cfg.name, 'OAR Starter App');
           assert.equal(cfg.domain, '');
           assert.deepEqual(cfg.programs, []);
           assert.deepEqual(cfg.repositories, []);

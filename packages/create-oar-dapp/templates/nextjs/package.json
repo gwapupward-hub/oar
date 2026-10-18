@@ -49,14 +49,6 @@
       "After choosing your PUBLIC creator address: +{pm} run oar:prepare -- --creator YOUR_PUBLIC_WALLET",
       "Then host the proof files, register on Devnet using your wallet at https://oarprotocol.xyz/register, and verify every link."
     ],
-    "rename": {
-      "OAR Starter App": {
-        "to": "{{name}}",
-        "paths": [
-          "oar.config.json"
-        ]
-      }
-    },
     "skills": []
   }
 }
