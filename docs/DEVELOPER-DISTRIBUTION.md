@@ -66,3 +66,17 @@ References:
 
 No npm publication, external PR, production deployment, or key operation is
 included in this implementation.
+
+## Automated external-distribution smoke
+
+A separate GitHub workflow, `.github/workflows/external-template-smoke.yml`,
+runs Solana's published `create-solana-dapp@4.8.5` against the **public main
+branch**, verifies the generated project's name and fail-closed OAR config,
+and independently installs, typechecks, and builds the project. It uses
+no deployed keys and no write-scoped GitHub credentials.
+
+It tests the public distribution path, not an onchain Devnet registration.
+A failure blocks declaring the external template verified; fix the CLI or
+template before promoting it to an official Solana community gallery
+contribution. Repeat the smoke when changing the template or the supported
+Solana CLI version. The workflow intentionally does not sign anything.
