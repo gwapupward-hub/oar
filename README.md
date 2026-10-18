@@ -66,6 +66,23 @@ npm test
 
 `anchor idl build` produces the same IDL if you have Anchor CLI 1.x.
 
+## Build new dApps with OAR App Standard v0.1 (experimental)
+
+The [OAR App Standard](docs/OAR-APP-STANDARD-v0.1.md) adds a developer-first
+Next.js starter without changing the registry program or the release gates:
+
+```bash
+node packages/create-oar-dapp/bin/create-oar-dapp.mjs my-app --domain example.org
+cd my-app && npm install && npm run dev
+# After selecting a public creator wallet:
+npm run oar:prepare -- --creator YOUR_PUBLIC_WALLET_ADDRESS
+```
+
+The tool builds SDK-validated Devnet manifests and reciprocal proofs but never
+signs transactions, stores secret keys, or claims an app is verified. Registration
+and program linking require separate owner-controlled actions. The generator
+package has not yet been published to npm.
+
 ## CLI rehearsal (after fresh public identity selection and build)
 
 Registering an app that is already live: follow `docs/REGISTERING.md` (`oar claim prepare`, `check`, `register`, `link-program`). The lower-level commands are:
