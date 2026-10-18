@@ -134,6 +134,15 @@ creator, invalid inputs fail without producing misleading files,
 registration remains a separate user-controlled Devnet action, and
 CI exercises the generator and preparation path.
 
+**Adapter integration (follow-on to v0.1):** generated projects include
+`src/lib/oar.ts`, a server-only @solana/kit resolver that accepts a program
+address and returns its identity only when the existing OAR SDK reports the
+program backlink as verified. No aggregate security label is inferred. A
+read-only Anchor.toml adapter can preview and optionally import
+`[programs.devnet]` public addresses into the developer config. It neither
+tests onchain existence nor signs the canonical backlink. These adapters are
+not a full Anchor Rust project generator or an onchain upgrade.
+
 **Future work, not v0.1 claims:** interactive wallet registration from
 the starter; deployment wizard integrations; official Anchor and Solana Kit
 scaffolds; reusable GitHub Action; production npm publication; community

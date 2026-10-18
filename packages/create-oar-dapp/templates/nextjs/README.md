@@ -13,6 +13,33 @@ npm run typecheck
 
 Edit `src/app/page.tsx` to build your product.
 
+## Solana Kit and Anchor developer adapters
+
+- `src/lib/oar.ts` is a **server-only** @solana/kit + OAR SDK adapter that
+  resolves a program's publisher identity only after the existing OAR verifier
+  confirms a canonical program backlink. Import `getVerifiedProgramIdentity`
+  into a server component or server-side handler, never a client component.
+- Development uses the public Solana Devnet endpoint; **production requires**
+  the server-side `OAR_DEVNET_RPC_URL` environment variable pointing at a
+  dedicated HTTPS Devnet RPC. Do not prefix a token-bearing RPC URL with `NEXT_PUBLIC_`.
+- For projects using an existing Anchor workspace, import the public program IDs
+  **after deployment**:
+
+```bash
+npm run oar:anchor -- --workspace ../my-anchor-project
+npm run oar:anchor -- --workspace ../my-anchor-project --yes
+```
+
+The first command is preview-only. The second modifies `oar.config.json`;
+existing nonempty program lists require `--yes --replace`. The adapter reads
+`[programs.devnet]` from `Anchor.toml`, not program keypair files. Program
+addresses are declarations, **not** proof of deployment or ownership. Linking
+still requires the actual program upgrade authority's signature.
+
+This adapter does not scaffold or deploy an Anchor Rust program. Use
+`anchor init` and `anchor deploy --provider.cluster devnet` in your own
+program workspace before linking it.
+
 ## Prepare your OAR identity
 
 1. Edit `oar.config.json` to set your real app name, domain, source repository,

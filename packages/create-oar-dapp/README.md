@@ -20,4 +20,15 @@ The generator creates a Next.js starter and `oar.config.json`; preparation uses 
 OAR SDK to derive the App ID, validate the manifest, and generate domain/repository proofs.
 It does not sign, fund, deploy, publish or verify anything onchain.
 
+The starter additionally includes a server-only Solana Kit / OAR verified
+program resolver, plus an opt-in Anchor.toml Devnet importer:
+
+```bash
+npm run oar:anchor -- --workspace ../my-anchor-program
+npm run oar:anchor -- --workspace ../my-anchor-program --yes
+```
+
+No private keys, RPC broadcasts, or program deployments occur. A listed
+program is not verified until OAR's independent bidirectional checks pass.
+
 Read `docs/OAR-APP-STANDARD-v0.1.md` and the generated project's README.
