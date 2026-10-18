@@ -108,8 +108,12 @@ never reads private keys or broadcasts transactions.
 
 The Next.js starter uses the published, fixed OAR SDK release candidate
 tarball. We do not claim this prototype package is published to npm.
-Further package publication and a `create-solana-dapp` community template
-integration require separate testing and approval.
+The starter has a self-contained `oar.config.json` and
+`create-solana-dapp` metadata for direct external-template extraction using
+`gh:gwapupward-hub/oar/packages/create-oar-dapp/templates/nextjs`. This
+external path needs post-merge validation against the real Solana CLI; publishing
+in the official Solana community gallery is a separate contribution and
+maintainer review. The generator itself remains unpublished to npm.
 
 ## 6. Security and compatibility invariants
 

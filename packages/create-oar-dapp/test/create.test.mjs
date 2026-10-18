@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, existsSync, readFileSync, rmSync, readdirSync, writeFileSync, mkdirSync } from 'node:fs';
+import { mkdtempSync, cpSync, existsSync, readFileSync, rmSync, readdirSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
@@ -125,4 +125,35 @@ test('Anchor adapter rejects malformed config, missing files and unknown options
   const importer = join(project, 'scripts/import-anchor-programs.mjs');
   assert.notEqual(run(project, importer, ['--bad']).status, 0);
   assert.notEqual(run(project, importer, ['--workspace', tmp]).status, 0);
+}));
+
+test('standalone Solana CLI template contains defaults, metadata and no pre-generated claims', () => withTemp(tmp => {
+  const template = join(root, 'packages/create-oar-dapp/templates/nextjs');
+  const direct = join(tmp, 'direct');
+  cpSync(template, direct, { recursive: true });
+  const pkg = JSON.parse(readFileSync(join(direct, 'package.json'), 'utf8'));
+  const cfgPath = join(direct, 'oar.config.json');
+  const cfg = JSON.parse(readFileSync(cfgPath, 'utf8'));
+  assert.equal(pkg.usecase, 'Starter');
+  assert.equal(pkg['create-solana-dapp'].rename['OAR Starter App'].to, '{{name}}');
+  assert.ok(pkg['create-solana-dapp'].rename['OAR Starter App'].in.includes('oar.config.json'));
+  assert.equal(cfg.standard, '0.1');
+  assert.equal(cfg.cluster, 'solana:devnet');
+  assert.equal(cfg.name, 'OAR Starter App');
+  assert.equal(cfg.domain, '');
+  assert.ok(!existsSync(join(direct, 'public/.well-known/oar.json')));
+  const prepare = join(direct, 'scripts/prepare-oar.mjs');
+  const invalid = run(direct, prepare, ['--creator', creator]);
+  assert.notEqual(invalid.status, 0);
+  assert.ok(!existsSync(join(direct, 'public/.well-known/oar-manifest.json')));
+  cfg.name = 'Example Independent Project';
+  cfg.domain = 'example.org';
+  writeFileSync(cfgPath, JSON.stringify(cfg, null, 2) + '\n');
+  const ok = run(direct, prepare, ['--creator', creator]);
+  assert.equal(ok.status, 0, ok.stderr);
+  const manifest = JSON.parse(readFileSync(join(direct, 'public/.well-known/oar-manifest.json'), 'utf8'));
+  assert.equal(manifest.name, cfg.name);
+  assert.deepEqual(manifest.domains, [cfg.domain]);
+  assert.equal(manifest.cluster, cfg.cluster);
+  assert.match(ok.stdout, /Not registered/);
 }));

@@ -78,6 +78,13 @@ cd my-app && npm install && npm run dev
 npm run oar:prepare -- --creator YOUR_PUBLIC_WALLET_ADDRESS
 ```
 
+For external-template distribution via Solana's CLI (after the template
+distribution PR merges), use:
+
+```bash
+npm create solana-dapp@latest -t gh:gwapupward-hub/oar/packages/create-oar-dapp/templates/nextjs
+```
+
 The tool builds SDK-validated Devnet manifests and reciprocal proofs but never
 signs transactions, stores secret keys, or claims an app is verified. Registration
 and program linking require separate owner-controlled actions. The generator

@@ -96,6 +96,8 @@ jobs:
           trap 'rm -rf "$tmp"' EXIT
           ( cd "$tmp" && node "$GITHUB_WORKSPACE/packages/create-oar-dapp/bin/create-oar-dapp.mjs" smoke-app --domain example.org )
           ( cd "$tmp/smoke-app" && npm install --ignore-scripts --no-audit --no-fund && npm run build )
+          cp -R "$GITHUB_WORKSPACE/packages/create-oar-dapp/templates/nextjs" "$tmp/standalone-template"
+          ( cd "$tmp/standalone-template" && npm install --ignore-scripts --no-audit --no-fund && npm run build )
       - run: npm run test:sdk
         env:
           OAR_PROGRAM_BINARY: ${{ runner.temp }}/oar-artifact/oar_registry.so
