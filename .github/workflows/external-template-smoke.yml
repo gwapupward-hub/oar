@@ -31,7 +31,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/oar-external-smoke"
           cd "$RUNNER_TEMP/oar-external-smoke"
           npm exec --yes --package=create-solana-dapp@4.8.5 -- create-solana-dapp smoke-external \
-            --template gh:gwapupward-hub/oar/packages/create-oar-dapp/templates/nextjs \
+            --template "gh:gwapupward-hub/oar/packages/create-oar-dapp/templates/nextjs#${{ github.event.pull_request.head.sha || github.sha }}" \
             --skip-install --skip-git --skip-version-check
       - name: Assert project rename and safe empty identity defaults
         shell: bash

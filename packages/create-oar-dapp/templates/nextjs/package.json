@@ -52,7 +52,7 @@
     "rename": {
       "OAR Starter App": {
         "to": "{{name}}",
-        "in": [
+        "paths": [
           "oar.config.json"
         ]
       }
