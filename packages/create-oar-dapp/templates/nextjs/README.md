@@ -8,7 +8,7 @@ npm create solana-dapp@latest -t gh:gwapupward-hub/oar/packages/create-oar-dapp/
 ```
 
 Alternatively, generate it with OAR's own `create-oar-dapp` script in the source
-repository. Both entry paths use **OAR App Standard v0.1**.
+repository. Both entry paths use **OAR App Standard v0.1**. The Solana CLI renames the npm package but deliberately leaves the OAR manifest identity name as an explicit edit in `oar.config.json`.
 This is a minimal Next.js application, not a deployed onchain program or a verified app.
 
 ## Local development

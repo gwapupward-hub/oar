@@ -1,0 +1,63 @@
+name: OAR external Solana template smoke
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/external-template-smoke.yml'
+      - 'packages/create-oar-dapp/templates/nextjs/**'
+      - 'docs/DEVELOPER-DISTRIBUTION.md'
+permissions:
+  contents: read
+jobs:
+  external-template:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      NPM_CONFIG_FUND: "false"
+      NPM_CONFIG_AUDIT: "false"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+          package-manager-cache: false
+      - name: Download the real external template through create-solana-dapp
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/oar-external-smoke"
+          cd "$RUNNER_TEMP/oar-external-smoke"
+          npm exec --yes --package=create-solana-dapp@4.8.5 -- create-solana-dapp smoke-external \
+            --template "gh:gwapupward-hub/oar/packages/create-oar-dapp/templates/nextjs#${{ github.event.pull_request.head.sha || github.sha }}" \
+            --skip-install --skip-git --skip-version-check
+      - name: Assert project rename and safe empty identity defaults
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/oar-external-smoke/smoke-external"
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import assert from 'node:assert/strict';
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const cfg = JSON.parse(fs.readFileSync('oar.config.json', 'utf8'));
+          assert.equal(pkg.name, 'smoke-external');
+          assert.equal(cfg.standard, '0.1');
+          assert.equal(cfg.cluster, 'solana:devnet');
+          assert.equal(cfg.name, 'OAR Starter App');
+          assert.equal(cfg.domain, '');
+          assert.deepEqual(cfg.programs, []);
+          assert.deepEqual(cfg.repositories, []);
+          assert.equal(fs.existsSync('public/.well-known/oar-manifest.json'), false);
+          assert.equal(fs.existsSync('public/.well-known/oar.json'), false);
+          JS
+      - name: Fresh external install, typecheck and production build
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/oar-external-smoke/smoke-external"
+          npm install --ignore-scripts --no-audit --no-fund
+          npm run typecheck
+          npm run build

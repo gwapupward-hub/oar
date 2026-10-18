@@ -30,7 +30,7 @@ the GitHub subdirectory by other means must edit `oar.config.json` manually.
    extracted template without invoking the internal generator.
 3. **After merging to main**, execute the actual Solana CLI external-template
    command in a clean throwaway directory on a machine with network access.
-   Check that the package and OAR config rename correctly, dependencies install,
+   Check that the generated package is renamed correctly and the OAR config remains an explicitly editable placeholder, dependencies install,
    `npm run build` succeeds, and the no-domain default fails closed before
    generating any manifest.
 4. Set a domain controlled by the tester or an immutable supported manifest
@@ -66,3 +66,17 @@ References:
 
 No npm publication, external PR, production deployment, or key operation is
 included in this implementation.
+
+## Automated external-distribution smoke
+
+A separate GitHub workflow, `.github/workflows/external-template-smoke.yml`,
+runs Solana's published `create-solana-dapp@4.8.5` against the **public main
+branch**, verifies the generated package name and fail-closed OAR config,
+and independently installs, typechecks, and builds the project. It uses
+no deployed keys and no write-scoped GitHub credentials.
+
+It tests the public distribution path, not an onchain Devnet registration.
+A failure blocks declaring the external template verified; fix the CLI or
+template before promoting it to an official Solana community gallery
+contribution. Repeat the smoke when changing the template or the supported
+Solana CLI version. The workflow intentionally does not sign anything.
