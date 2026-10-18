@@ -28,5 +28,34 @@
   "engines": {
     "node": ">=24"
   },
-  "packageManager": "npm@11.9.0"
+  "packageManager": "npm@11.9.0",
+  "displayName": "OAR App Standard — Next.js",
+  "description": "Next.js Solana starter with OAR App ID, manifest and bidirectional verification",
+  "usecase": "Starter",
+  "keywords": [
+    "solana",
+    "oar",
+    "application-identity",
+    "nextjs",
+    "solana-kit",
+    "typescript",
+    "devnet"
+  ],
+  "create-solana-dapp": {
+    "instructions": [
+      "An OAR-ready starter is not a registered or verified application.",
+      "Edit oar.config.json: choose your real domain, repository and any deployed program IDs.",
+      "Start building: +{pm} run dev",
+      "After choosing your PUBLIC creator address: +{pm} run oar:prepare -- --creator YOUR_PUBLIC_WALLET",
+      "Then host the proof files, register on Devnet using your wallet at https://oarprotocol.xyz/register, and verify every link."
+    ],
+    "rename": {
+      "OAR Starter App": {
+        "to": "{{name}}",
+        "in": [
+          "oar.config.json"
+        ]
+      }
+    }
+  }
 }

@@ -1,7 +1,14 @@
 # create-oar-dapp
 
 OAR App Standard v0.1 reference project generator. This package is an independent prototype,
-not yet published to npm. Run from the OAR repository:
+not yet published to npm. The starter also supports the Solana developer CLI's
+external-template path directly from GitHub once this change reaches `main`:
+
+```bash
+npm create solana-dapp@latest -t gh:gwapupward-hub/oar/packages/create-oar-dapp/templates/nextjs
+```
+
+Or run the project generator from the OAR repository:
 
 ```bash
 node packages/create-oar-dapp/bin/create-oar-dapp.mjs my-app --name "My App" --domain myapp.xyz --repo https://github.com/me/my-app
