@@ -87,6 +87,7 @@ jobs:
           path: ${{ runner.temp }}/oar-artifact
       - run: npm ci --ignore-scripts
       - run: npm run build && npm run typecheck && npm run test:cli && npm run test:devnet && npm run test:release && npm run check:source
+      - run: node --test packages/create-oar-dapp/test/*.test.mjs
       - run: npm run test:sdk
         env:
           OAR_PROGRAM_BINARY: ${{ runner.temp }}/oar-artifact/oar_registry.so

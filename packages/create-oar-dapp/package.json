@@ -1,0 +1,21 @@
+{
+  "name": "create-oar-dapp",
+  "version": "0.1.0",
+  "description": "OAR App Standard v0.1: scaffold a Solana dApp with OAR identity integration",
+  "license": "Apache-2.0",
+  "type": "module",
+  "bin": {
+    "create-oar-dapp": "./bin/create-oar-dapp.mjs"
+  },
+  "files": [
+    "bin",
+    "templates",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20.18"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  }
+}
