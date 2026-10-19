@@ -1,0 +1,103 @@
+{
+  "kind": "gallery e2e (non-signing steps only)",
+  "at": "2026-10-19T04:53:40.778Z",
+  "slot": "512683656",
+  "rpcHost": "api.devnet.solana.com",
+  "sourceCommit": "522859eb4b165232e829f14d676e75207905548c",
+  "sourceDirty": false,
+  "versions": {
+    "node": "v22.22.0",
+    "sdk": "0.1.1-rc.2"
+  },
+  "appId": "Bu1JCyxiVDdDGjtNLLkKhq6KZv6E4LcUgqNkS5t5Nf2K",
+  "creator": "91N96ZPGHcFWe2jEZie9rUVqyHF5BWMV7mYnHMurhWB7",
+  "nonce": "0",
+  "cluster": "solana:devnet",
+  "manifest": {
+    "uri": "https://raw.githubusercontent.com/gwapupward-hub/oar/05ff278aab30d76bd41cd9505960e8b5f3400d8e/release/devnet/oar.manifest.json",
+    "sha256": "0c4bf3a07834010980722c5c7a91253663618b5c08a1178873e3d77d104068cb",
+    "schemaValid": true,
+    "uriPolicy": {
+      "ok": true
+    },
+    "hosting": {
+      "ok": true,
+      "sha256": "0c4bf3a07834010980722c5c7a91253663618b5c08a1178873e3d77d104068cb"
+    }
+  },
+  "record": {
+    "manifestUri": "https://raw.githubusercontent.com/gwapupward-hub/oar/2b393297d528857d59050fe7686dedecfb884fa9/release/devnet/oar.manifest.json",
+    "manifestSha256": "6ab833dc54c3d75f092c01881e2502237163c0d9ec7a255efd7b980eb6091a24",
+    "revision": 0,
+    "authority": "91N96ZPGHcFWe2jEZie9rUVqyHF5BWMV7mYnHMurhWB7",
+    "matchesPrepared": false
+  },
+  "domains": [
+    {
+      "subject": "oarprotocol.xyz",
+      "state": "verified",
+      "method": "well-known"
+    }
+  ],
+  "repositories": [
+    {
+      "subject": "https://github.com/gwapupward-hub/oar",
+      "state": "verified",
+      "method": "repo-file"
+    }
+  ],
+  "programs": [
+    {
+      "program": "oariw8YXcYJh9sa9VcmBU3ZCdo2WVGMYPsLjEuUxfrC",
+      "backlink": "verified",
+      "deployed": true,
+      "upgradeAuthority": "2iceQADt8dJwpRLqoszVTcnRVnPUfBFtKxMTuqvWoovr"
+    }
+  ],
+  "resolved": {
+    "status": "Active",
+    "manifest": "ok",
+    "claims": [
+      {
+        "kind": "program",
+        "subject": "oariw8YXcYJh9sa9VcmBU3ZCdo2WVGMYPsLjEuUxfrC",
+        "state": "verified",
+        "method": "program-metadata",
+        "detail": null,
+        "retryable": false
+      },
+      {
+        "kind": "repository",
+        "subject": "https://github.com/gwapupward-hub/oar",
+        "state": "verified",
+        "method": "repo-file",
+        "detail": null,
+        "retryable": false
+      }
+    ]
+  },
+  "claims": [
+    {
+      "kind": "program",
+      "subject": "oariw8YXcYJh9sa9VcmBU3ZCdo2WVGMYPsLjEuUxfrC",
+      "state": "verified"
+    },
+    {
+      "kind": "domain",
+      "subject": "oarprotocol.xyz",
+      "state": "verified"
+    },
+    {
+      "kind": "repository",
+      "subject": "https://github.com/gwapupward-hub/oar",
+      "state": "verified"
+    }
+  ],
+  "preflightErrors": [],
+  "remainingSignedSteps": [
+    "Point the record at the prepared manifest: the record authority signs a manifest update (Update card, or `oar update`)."
+  ],
+  "gate": "BLOCKED",
+  "transactionSignatures": [],
+  "note": "No transaction was sent. Signatures for the remaining steps are added by the person who signs them."
+}
