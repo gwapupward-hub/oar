@@ -1,6 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
+import { createServer } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -35,5 +37,35 @@ test('manifest files with a repeated key are refused by validate and hash', () =
     assert.equal(r.status, 1, cmd);
     assert.match(r.stderr, /Error: Duplicate JSON key "name"/, cmd);
     assert.equal(r.stdout, '', cmd);
+  }
+});
+
+test('an unreachable RPC is reported as retryable (exit 2), never as an absent record or backlink', async () => {
+  const server = createServer((_req, res) => { res.writeHead(503); res.end(); });
+  await new Promise<void>(r => server.listen(0, '127.0.0.1', r));
+  const rpc = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  const run = (args: string[]) => new Promise<{ code: number | null; stdout: string; stderr: string }>(resolve => {
+    const child = spawn(process.execPath, ['--import', 'tsx', 'src/index.ts', ...args], { stdio: ['ignore', 'pipe', 'pipe'] });
+    let stdout = '', stderr = '';
+    child.stdout.on('data', d => { stdout += d; });
+    child.stderr.on('data', d => { stderr += d; });
+    child.on('close', code => resolve({ code, stdout, stderr }));
+  });
+  try {
+    const id = '11111111111111111111111111111111';
+    const inspect = await run(['inspect', id, '--rpc', rpc, '--no-live']);
+    assert.equal(inspect.code, 2, inspect.stderr);
+    assert.match(inspect.stderr, /unavailable; retry/);
+    assert.doesNotMatch(inspect.stderr, /No AppRecord/);
+
+    const json = await run(['inspect', id, '--rpc', rpc, '--no-live', '--json']);
+    assert.equal(json.code, 2, json.stderr);
+    assert.equal(JSON.parse(json.stdout).status, 'unavailable');
+
+    const prog = await run(['resolve-program', id, '--rpc', rpc, '--no-live', '--json']);
+    assert.equal(prog.code, 2, prog.stderr);
+    assert.equal(JSON.parse(prog.stdout).status, 'unavailable');
+  } finally {
+    server.close();
   }
 });

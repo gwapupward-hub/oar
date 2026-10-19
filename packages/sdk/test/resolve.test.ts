@@ -19,6 +19,7 @@ import {
   buildProofFile,
   backlinkMatches,
   fetchProgramBacklink,
+  fetchClaimAttestation,
   OarRpcUnavailableError,
   checkDomain,
   deriveAttestationNonce,
@@ -289,4 +290,27 @@ test('malformed successfully-read metadata stays invalid; genuinely missing meta
   const missing = await fetchProgramBacklink(w.rpc, anotherProgram);
   assert.equal(missing.status, 'none');
   assert.equal(backlinkMatches(missing, w.appId, CLUSTER).state, 'unverified');
+});
+
+test('trusted attestation RPC outage is unavailable, never invalid evidence or a failed claim', async () => {
+  const w = await world();
+  const credential = (await generateKeyPairSigner()).address;
+  const now = 1_800_000_000n;
+  const attestation = await putClaim(w.svm, {
+    credential, appId: w.appId, schema: 'oar-program', subject: w.program,
+    appCluster: CLUSTER, programCluster: CLUSTER, now,
+    payload: { program: Array.from(getAddressEncoder().encode(w.program)), method: 0 },
+    expiry: now + 100n,
+  });
+  const failingRpc = rpcWithDroppedReads(w.rpc, [w.metadataPda, attestation]);
+  const read = await fetchClaimAttestation(failingRpc, {
+    credential, schema: 'oar-program', appId: w.appId, subject: w.program,
+    appCluster: CLUSTER, programCluster: CLUSTER, nowSeconds: now,
+  });
+  assert.equal(read.status, 'unavailable');
+
+  const app = await resolveApp(failingRpc, w.appId, opts(w.routes, { trustedIssuers: [credential], nowSeconds: now }));
+  assert.equal(app?.programs[0]?.state, 'unverified');
+  assert.deepEqual(app?.programs[0]?.attestedBy, []);
+  assert.match(app?.programs[0]?.detail ?? '', /attestation RPC read unavailable; retry/);
 });

@@ -134,6 +134,9 @@ async function publish(o) {
   const backlink = await s.fetchProgramBacklink(rpc, address(programId));
   if (backlink.status === 'ok' && backlink.link.app === appId && backlink.link.cluster === CLUSTER) {
     out.steps.push({ step: 'backlink', skipped: 'identical backlink exists', metadata: backlink.metadataAddress });
+  } else if (backlink.status === 'unavailable') {
+    // Never sign a write against state that could not be read.
+    fail(`Could not read the program's \`oar\` metadata account (${backlink.metadataAddress}): ${backlink.reason}`);
   } else if (backlink.status === 'ok' || backlink.status === 'invalid') {
     fail(`The program already has an \`oar\` metadata account (${backlink.metadataAddress}) that names something else; replacing it is a separate decision`);
   } else {
@@ -153,6 +156,7 @@ async function publish(o) {
   let resolved = null;
   for (let i = 0; i < 20; i++) {
     resolved = await s.resolveProgram(rpc, address(programId), { cluster: CLUSTER });
+    if (resolved?.status === 'unavailable') resolved = null; // Transient RPC failure: retry, never record it as a result.
     if (resolved?.link?.state === 'verified' && resolved.app.repositories[0]?.state === 'verified') break;
     await sleep(3000);
   }

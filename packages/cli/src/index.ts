@@ -31,6 +31,7 @@ import {
   hashManifestHex,
   nextAppNonce,
   parseJsonStrict,
+  OarRpcUnavailableError,
   resolveApp,
   resolveProgram,
   validateManifest,
@@ -298,7 +299,14 @@ resolveOpts(program.command('inspect <appId>').description('resolve an App ID an
     cluster,
     live: o.live,
     trustedIssuers: (o.issuer ?? []).map((a: string) => address(a)),
+  }).catch(e => {
+    if (!(e instanceof OarRpcUnavailableError)) throw e;
+    if (o.json) console.log(json({ status: 'unavailable', appId, detail: e.message }));
+    else console.error(`App        ${appId}: ${e.message}`);
+    process.exitCode = 2; // Transient failure, not an absent AppRecord.
+    return undefined;
   });
+  if (app === undefined) return;
   if (!app) {
     const raw = await fetchMaybeAppRecord(rpc, address(appId));
     console.error(raw.exists ? 'Account exists but is not an OAR AppRecord' : `No AppRecord at ${appId} on ${cluster}`);

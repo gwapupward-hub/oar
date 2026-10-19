@@ -27,8 +27,15 @@ No trusted issuer is configured by default.
 - `resolveApp` throws `OarRpcUnavailableError` for a failed AppRecord
   RPC read instead of returning `null`; malformed or missing successfully
   fetched records still return `null`.
-- CLI `resolve-program` returns exit code 2 for unavailable RPC,
-  including JSON output, distinct from absence (exit code 1).
+- `fetchClaimAttestation` returns `status: 'unavailable'` when any of its
+  RPC reads fails, instead of `invalid`. `resolveApp` never counts it as an
+  attestation; the claim stays `unverified` with a retry hint in `detail`.
+- CLI `resolve-program` and `inspect` return exit code 2 for unavailable RPC,
+  including JSON output (`{"status":"unavailable",...}`), distinct from
+  absence (exit code 1).
+- `scripts/devnet/oar-app.mjs` refuses to write a program backlink when the
+  existing metadata account could not be read, and retries (never records)
+  an unavailable `resolveProgram` result.
 - The generated Next.js resolver surfaces the retryable condition as
   an error rather than calling the program unverified/unsafe.
 
@@ -39,7 +46,8 @@ and retryable exception before upgrading.
 
 ## Validation
 
-Tests simulate a dropped metadata-account RPC and a dropped AppRecord RPC,
+Tests simulate a dropped metadata-account RPC, a dropped AppRecord RPC and a
+dropped trusted-attestation RPC, run the CLI against an RPC returning HTTP 503,
 verify `unverified`/retry behavior and explicit `unavailable` program
 resolution, preserve valid trusted SAS attestations, and ensure corrupt
 successfully-read metadata still returns `failed`. CI must also run the

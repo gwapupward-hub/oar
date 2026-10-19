@@ -67,21 +67,32 @@ async function attestationsFor(
   appId: Address,
   subject: string,
   programCluster?: Cluster,
-): Promise<Address[]> {
-  const out: Address[] = [];
+): Promise<Attestations> {
+  const out: Attestations = { attestedBy: [], unavailable: false };
   for (const credential of opts.trustedIssuers ?? []) {
     const a = await fetchClaimAttestation(rpc, { credential, schema, appId, subject, appCluster: opts.cluster, programCluster, nowSeconds: opts.nowSeconds });
-    if (a.status === 'valid') out.push(credential);
+    if (a.status === 'valid') out.attestedBy.push(credential);
+    else if (a.status === 'unavailable') out.unavailable = true;
   }
   return out;
 }
 
+interface Attestations {
+  attestedBy: Address[];
+  /** A trusted issuer's attestation could not be read; its absence is not established. */
+  unavailable: boolean;
+}
+
+const NO_ATTESTATIONS: Attestations = { attestedBy: [], unavailable: false };
+const ATTESTATION_RETRY = 'trusted issuer attestation RPC read unavailable; retry verification';
+
 /** Combine a live check with attestations: failed wins, then verified, then attested. */
-function combine(subject: string, live: LinkCheck | null, attestedBy: Address[]): ClaimResult {
+function combine(subject: string, live: LinkCheck | null, { attestedBy, unavailable }: Attestations): ClaimResult {
   if (live?.state === 'failed') return { subject, state: 'failed', method: live.method, detail: live.detail, attestedBy };
   if (live?.state === 'verified') return { subject, state: 'verified', method: live.method, attestedBy };
   if (attestedBy.length > 0) return { subject, state: 'attested', detail: live?.detail, attestedBy };
-  return { subject, state: 'unverified', detail: live?.detail, attestedBy };
+  const detail = unavailable ? [live?.detail, ATTESTATION_RETRY].filter(Boolean).join('; ') : live?.detail;
+  return { subject, state: 'unverified', detail, attestedBy };
 }
 
 /**
@@ -137,20 +148,20 @@ export async function resolveApp(rpc: AccountRpc, appId: Address, opts: ResolveO
     const programRpc = p.cluster === opts.cluster ? rpc : opts.rpcByCluster?.[p.cluster];
     let check: LinkCheck | null = { state: 'unverified', detail: `no RPC configured for ${p.cluster}` };
     if (programRpc) check = backlinkMatches(await fetchProgramBacklink(programRpc, p.address as Address), appId, opts.cluster);
-    const attestedBy = check.state === 'verified' ? [] : await attestationsFor(rpc, opts, 'oar-program', appId, p.address, p.cluster);
-    base.programs.push({ ...combine(p.address, check, attestedBy), cluster: p.cluster, name: p.name });
+    const attestations = check.state === 'verified' ? NO_ATTESTATIONS : await attestationsFor(rpc, opts, 'oar-program', appId, p.address, p.cluster);
+    base.programs.push({ ...combine(p.address, check, attestations), cluster: p.cluster, name: p.name });
   }
 
   for (const host of m.domains ?? []) {
     const check = live ? await checkDomain(host, appId, opts.cluster, { fetch: opts.fetch, resolveTxt: opts.resolveTxt }) : null;
-    const attestedBy = check?.state === 'verified' ? [] : await attestationsFor(rpc, opts, 'oar-domain', appId, host);
-    base.domains.push(combine(host, check, attestedBy));
+    const attestations = check?.state === 'verified' ? NO_ATTESTATIONS : await attestationsFor(rpc, opts, 'oar-domain', appId, host);
+    base.domains.push(combine(host, check, attestations));
   }
 
   for (const repo of m.repositories ?? []) {
     const check = live ? await checkRepository(repo.url, appId, opts.cluster, { fetch: opts.fetch }) : null;
-    const attestedBy = check?.state === 'verified' ? [] : await attestationsFor(rpc, opts, 'oar-repo', appId, repo.url);
-    base.repositories.push(combine(repo.url, check, attestedBy));
+    const attestations = check?.state === 'verified' ? NO_ATTESTATIONS : await attestationsFor(rpc, opts, 'oar-repo', appId, repo.url);
+    base.repositories.push(combine(repo.url, check, attestations));
   }
 
   return base;
