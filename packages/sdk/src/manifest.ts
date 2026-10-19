@@ -4,6 +4,9 @@ import { bytesToHex } from '@noble/hashes/utils.js';
 import { Ajv2020 } from 'ajv/dist/2020.js';
 import type { ErrorObject } from 'ajv';
 import { LIMITS, type Cluster } from './constants.js';
+import { checkManifestUri } from './uri.js';
+
+export { checkManifestUri, type ManifestUriCheck } from './uri.js';
 import { manifestSchema, programLinkSchema, wellKnownSchema } from './schemas.js';
 import { readLimitedText } from './http.js';
 import { parseJsonStrict } from './json.js';
@@ -153,7 +156,7 @@ export async function fetchManifest(uri: string, opts: FetchManifestOptions = {}
 
 export type HostingCheck =
   | { ok: true; sha256: string }
-  | { ok: false; reason: 'unreachable' | 'different'; detail: string };
+  | { ok: false; reason: 'unreachable' | 'different' | 'unsafe-uri'; detail: string };
 
 /**
  * Before registering: fetch the manifest from where the record will point and confirm it is byte-for-byte the
@@ -161,6 +164,8 @@ export type HostingCheck =
  * "metadata unavailable".
  */
 export async function checkManifestHosting(uri: string, manifest: unknown, opts: FetchManifestOptions = {}): Promise<HostingCheck> {
+  const policy = checkManifestUri(uri);
+  if (!policy.ok) return { ok: false, reason: 'unsafe-uri', detail: policy.detail };
   let hosted: unknown;
   try {
     hosted = await fetchManifest(uri, opts);

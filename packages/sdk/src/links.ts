@@ -25,6 +25,20 @@ export interface LinkCheck {
   state: 'verified' | 'unverified' | 'failed';
   method?: 'program-metadata' | 'well-known' | 'dns-txt' | 'repo-file';
   detail?: string;
+  /**
+   * Only with `unverified`: a read (RPC, HTTP or DNS) could not complete, so the proof's absence is not established.
+   * Show "temporarily unavailable, retry", never a security failure.
+   */
+  retryable?: true;
+}
+
+/** DNS answers that establish there is no record, as opposed to a resolver that could not answer. */
+const DNS_ABSENT = new Set(['ENOTFOUND', 'ENODATA', 'ENONAME', 'NXDOMAIN']);
+
+function transient(e: unknown): boolean {
+  if (e instanceof HttpCheckError) return e.transient;
+  const code = (e as { code?: unknown } | null)?.code;
+  return typeof code === 'string' && !DNS_ABSENT.has(code);
 }
 
 // ---------------------------------------------------------------------------
@@ -90,7 +104,7 @@ export async function fetchProgramBacklink(
 }
 
 export function backlinkMatches(result: BacklinkResult, appId: string, appCluster: Cluster): LinkCheck {
-  if (result.status === 'unavailable') return { state: 'unverified', detail: result.reason };
+  if (result.status === 'unavailable') return { state: 'unverified', detail: result.reason, retryable: true };
   if (result.status === 'none') return { state: 'unverified', detail: 'no canonical oar backlink' };
   if (result.status === 'invalid') return { state: 'failed', detail: result.reason };
   if (result.link.app !== appId || result.link.cluster !== appCluster) {
@@ -133,6 +147,7 @@ export async function checkDomain(
 ): Promise<LinkCheck> {
   if (!HOSTNAME.test(host)) return { state: 'failed', detail: 'not a lowercase ASCII hostname' };
   let otherApp = false;
+  let incomplete = false;
   const notes: string[] = [];
 
   // 1. Well-known file: HTTPS, 200, <= 16 KiB, no redirects.
@@ -149,6 +164,7 @@ export async function checkDomain(
     else if (proofNames(parsed as ProofFile, appId, cluster) === 'match') return { state: 'verified', method: 'well-known' };
     else otherApp = true;
   } catch (e) {
+    incomplete ||= transient(e);
     notes.push(e instanceof HttpCheckError || e instanceof SyntaxError ? e.message : String(e));
   }
 
@@ -161,12 +177,13 @@ export async function checkDomain(
       if (oarRecords.includes(`oar=${cluster}:${appId}`)) return { state: 'verified', method: 'dns-txt' };
       if (oarRecords.length > 0) otherApp = true;
     } catch (e) {
+      incomplete ||= transient(e);
       notes.push(`dns: ${(e as Error).message}`);
     }
   }
 
   if (otherApp) return { state: 'failed', detail: 'proof names a different App ID or cluster' };
-  return { state: 'unverified', detail: notes.join(' | ') || 'no proof found' };
+  return { state: 'unverified', detail: notes.join(' | ') || 'no proof found', ...(incomplete ? { retryable: true as const } : {}) };
 }
 
 // ---------------------------------------------------------------------------
@@ -214,6 +231,6 @@ export async function checkRepository(
       ? { state: 'verified', method: 'repo-file' }
       : { state: 'failed', method: 'repo-file', detail: 'oar.json names a different App ID or cluster' };
   } catch (e) {
-    return { state: 'unverified', detail: (e as Error).message };
+    return { state: 'unverified', detail: (e as Error).message, ...(e instanceof HttpCheckError && e.transient ? { retryable: true as const } : {}) };
   }
 }

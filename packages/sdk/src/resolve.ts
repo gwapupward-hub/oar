@@ -26,6 +26,8 @@ export interface ClaimResult {
   detail?: string;
   /** Trusted credentials holding a valid, unexpired attestation for this claim. */
   attestedBy: Address[];
+  /** Only with `unverified`: verification could not complete (RPC, HTTP or DNS outage). Retry; not a failure. */
+  retryable?: true;
 }
 
 export interface ProgramClaimResult extends ClaimResult {
@@ -92,7 +94,7 @@ function combine(subject: string, live: LinkCheck | null, { attestedBy, unavaila
   if (live?.state === 'verified') return { subject, state: 'verified', method: live.method, attestedBy };
   if (attestedBy.length > 0) return { subject, state: 'attested', detail: live?.detail, attestedBy };
   const detail = unavailable ? [live?.detail, ATTESTATION_RETRY].filter(Boolean).join('; ') : live?.detail;
-  return { subject, state: 'unverified', detail, attestedBy };
+  return { subject, state: 'unverified', detail, attestedBy, ...(unavailable || live?.retryable ? { retryable: true as const } : {}) };
 }
 
 /**
@@ -146,7 +148,7 @@ export async function resolveApp(rpc: AccountRpc, appId: Address, opts: ResolveO
 
   for (const p of m.programs ?? []) {
     const programRpc = p.cluster === opts.cluster ? rpc : opts.rpcByCluster?.[p.cluster];
-    let check: LinkCheck | null = { state: 'unverified', detail: `no RPC configured for ${p.cluster}` };
+    let check: LinkCheck | null = { state: 'unverified', detail: `no RPC configured for ${p.cluster}`, retryable: true };
     if (programRpc) check = backlinkMatches(await fetchProgramBacklink(programRpc, p.address as Address), appId, opts.cluster);
     const attestations = check.state === 'verified' ? NO_ATTESTATIONS : await attestationsFor(rpc, opts, 'oar-program', appId, p.address, p.cluster);
     base.programs.push({ ...combine(p.address, check, attestations), cluster: p.cluster, name: p.name });

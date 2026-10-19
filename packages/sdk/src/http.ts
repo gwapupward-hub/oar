@@ -1,6 +1,12 @@
 export class HttpCheckError extends Error {
-  constructor(message: string, readonly code: 'redirect' | 'status' | 'too-large' | 'timeout' | 'network' | 'scheme' | 'destination') {
+  constructor(message: string, readonly code: 'redirect' | 'status' | 'too-large' | 'timeout' | 'network' | 'scheme' | 'destination', readonly httpStatus?: number) {
     super(message); this.name = 'HttpCheckError';
+  }
+
+  /** The request could not complete (timeout, network, 429 or 5xx): absence of a proof is not established. */
+  get transient(): boolean {
+    return this.code === 'timeout' || this.code === 'network' ||
+      (this.code === 'status' && this.httpStatus !== undefined && (this.httpStatus === 429 || this.httpStatus >= 500));
   }
 }
 
@@ -106,7 +112,7 @@ export async function readLimitedText(url: string, opts: ReadLimitedOptions): Pr
         if (hop >= opts.maxRedirects || !location) throw new HttpCheckError('Redirect not allowed', 'redirect');
         current = new URL(location, current).toString(); continue;
       }
-      if (res.status !== 200) { await res.body?.cancel(); throw new HttpCheckError(`HTTP ${res.status}`, 'status'); }
+      if (res.status !== 200) { await res.body?.cancel(); throw new HttpCheckError(`HTTP ${res.status}`, 'status', res.status); }
       if (Number(res.headers.get('content-length') ?? '0') > opts.maxBytes) {
         await res.body?.cancel(); throw new HttpCheckError('Body too large', 'too-large');
       }
