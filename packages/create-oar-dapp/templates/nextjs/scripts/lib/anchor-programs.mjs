@@ -16,7 +16,7 @@ export function parseAnchorDevnetPrograms(toml) {
       continue;
     }
     if (section !== '[programs.devnet]') continue;
-    const match = /^([A-Za-z][A-Za-z0-9_-]*)\s*=\s*"([1-9A-HJ-NP-Za-km-z]{32,44})"\s*(?:#.*)?$/.exec(line);
+    const match = line.match(/^([A-Za-z][A-Za-z0-9_-]*)\s*=\s*"([1-9A-HJ-NP-Za-km-z]{32,44})"\s*(?:#.*)?$/);
     if (!match) throw new Error('Unsupported [programs.devnet] entry on line ' + (i + 1));
     const [, name, program] = match;
     if (seen.has(name)) throw new Error('Duplicate Anchor program name: ' + name);
