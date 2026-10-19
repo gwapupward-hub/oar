@@ -13,7 +13,7 @@ submitted. The blockers are below.
 | --- | --- | --- | --- | --- |
 | A. RPC outages never become failed proofs (#20) | PASS, merged (`fd8df61`) | [#20](https://github.com/gwapupward-hub/oar/pull/20): CI 7/7 green; SDK 59/59, CLI 8/8 | `deed540` | Done |
 | B. Manifest URI policy, reserved proof path, retryable state (#21) | PASS, merged (`c4d3f77`) | [#21](https://github.com/gwapupward-hub/oar/pull/21): CI 7/7 green; SDK 64/64, CLI 9/9, starter 10/10 | `40d6e5c` | Done |
-| B. Explorer shows outages as "Temporarily unavailable" (oar-web#13) | PASS, inert until SDK bump | [oar-web#13](https://github.com/gwapupward-hub/oar-web/pull/13): CI green; 35/35 tests; build | `b5d1b8d` | Merge; bump SDK after rc.3 |
+| B. Explorer shows outages as "Temporarily unavailable" (oar-web#13) | PASS, merged; inert until SDK bump | [oar-web#13](https://github.com/gwapupward-hub/oar-web/pull/13): CI green; 35/35 tests; build | `b5d1b8d` | Bump oar-web's SDK after rc.3 is tagged |
 | B. SDK release candidate v0.1.1-rc.3 (#22) | Merged (`88af035`); BLOCKED on tag | [#22](https://github.com/gwapupward-hub/oar/pull/22): CI green; `release.mjs check` OK; local packs identical | `1a08b4d` | Owner: tag `v0.1.1-rc.3` on `main` |
 | C. Standalone template acceptance (#23) | PASS, merged (`6b69e01`) | [#23](https://github.com/gwapupward-hub/oar/pull/23): CI 7/7 green incl. extended external-template job; acceptance table below | `3d30a63` | Done |
 | D. Community template package | PASS locally; not submitted | `docs/gallery-submission/` (patch, PR draft); upstream checks below | templates `cdb4d8c` on upstream `d7961ba` | Clear the npm blocker, then fork and open the PR |
@@ -111,7 +111,7 @@ Live, read-only (`npm run devnet:gallery-e2e`, slot 512683656, commit `522859e`)
 
 ## Approvals required
 
-1. Merge oar-web#13 (#20, #21, #22 and #23 are merged).
+1. Done: #20, #21, #22, #23 and oar-web#13 are merged.
 2. Push tag `v0.1.1-rc.3` on `main` (GitHub pre-release by `release.yml`).
 3. Publish `@open-app-registry/sdk` to the npm registry (removes the remote-source finding and the pnpm 10.5.2 risk),
    then point the starter, oar-web and the community template at it.
