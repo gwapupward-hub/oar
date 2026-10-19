@@ -321,7 +321,7 @@ resolveOpts(program.command('resolve-program <program>').description('find the a
     process.exitCode = 1;
     return;
   }
-  if ('status' in r && r.status === 'unavailable') {
+  if ('status' in r) {
     if (o.json) console.log(json(r));
     else console.error(`Program    ${prog}: ${r.detail}`);
     process.exitCode = 2; // Transient failure, not an absent or rejected backlink.
