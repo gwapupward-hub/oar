@@ -135,7 +135,12 @@ test('standalone Solana CLI template contains defaults, metadata and no pre-gene
   const cfgPath = join(direct, 'oar.config.json');
   const cfg = JSON.parse(readFileSync(cfgPath, 'utf8'));
   assert.equal(pkg.usecase, 'Starter');
-  assert.ok(Array.isArray(pkg['create-solana-dapp'].instructions));
+  const instructions = pkg['create-solana-dapp'].instructions;
+  assert.ok(Array.isArray(instructions));
+  // create-solana-dapp formats a line as a command only when '+' is its first character.
+  for (const line of instructions) assert.ok(line.startsWith('+') || !line.includes('+'), `'+' must start the line: ${line}`);
+  assert.ok(instructions.includes('+{pm} run dev'));
+  assert.ok(instructions.some(l => l.startsWith('+{pm} run oar:prepare -- --creator ')));
   assert.equal(pkg['create-solana-dapp'].rename, undefined);
   assert.equal(cfg.standard, '0.1');
   assert.equal(cfg.cluster, 'solana:devnet');
