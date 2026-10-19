@@ -1,0 +1,16 @@
+{
+  "kind": "local pre-release reproducibility check (NOT release assets)",
+  "version": "0.1.1-rc.3",
+  "sourceCommit": "9feceacf7078b791b0695f4b51241203b5522608",
+  "at": "2026-10-19T04:33:00Z",
+  "node": "v22.22.0",
+  "npm": "10.9.4",
+  "command": "npm run build && npm pack -w @open-app-registry/sdk -w @open-app-registry/cli",
+  "packs": 3,
+  "identicalAcrossPacks": true,
+  "sha256": {
+    "open-app-registry-sdk-0.1.1-rc.3.tgz": "9a13cd3f064678331bac834080a3c9b8a3f2ef69cbbf11411f5684cb4c266b42",
+    "open-app-registry-cli-0.1.1-rc.3.tgz": "5a792ab0dca40c3e0bfcc49963ec3c044ca96fe03c465241ab6b6bb1d340cc50"
+  },
+  "note": "The authoritative tarballs and SHA256SUMS are produced by .github/workflows/release.yml when v0.1.1-rc.3 is tagged on main. Compare them with these values; a difference in Node/npm versions can change the archive bytes without changing contents."
+}

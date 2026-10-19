@@ -45,7 +45,7 @@ import { loadKeypair, parseCluster, rpcFor, sendAndConfirm } from './tx.js';
 const program = new Command()
   .name('oar')
   .description('Open App Registry: onchain application identity for Solana')
-  .version('0.1.1-rc.2');
+  .version('0.1.1-rc.3');
 
 const clusterOpt = () => new Option('-c, --cluster <cluster>', 'mainnet | devnet | testnet').default('devnet');
 const rpcOpt = () => new Option('-u, --rpc <url>', 'RPC URL (defaults to the public endpoint for the cluster)');
