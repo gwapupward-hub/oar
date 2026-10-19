@@ -106,7 +106,7 @@ const opts = (routes: Parameters<typeof stubFetch>[0], extra: object = {}) => ({
 test('resolveProgram: bidirectional links verify end to end', async () => {
   const w = await world();
   const r = await resolveProgram(w.rpc, w.program, opts(w.routes));
-  assert.ok(r);
+  assert.ok(r && !('status' in r), 'expected a resolved program, not an unavailable RPC');
   assert.equal(r.app.appId, w.appId);
   assert.equal(r.app.manifest.ok, true);
   assert.equal(r.link?.state, 'verified');
