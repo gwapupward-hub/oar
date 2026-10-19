@@ -1,7 +1,7 @@
 # OAR-ready Solana dApp (Devnet)
 
-Use this standalone template with Solana's `create-solana-dapp` CLI (after its
-corresponding OAR repository change is merged):
+Use this standalone template with Solana's `create-solana-dapp` CLI (tested with
+`create-solana-dapp@4.8.5`, the npm `latest` tag as of 2026-10-19):
 
 ```bash
 npm create solana-dapp@latest -t gh:gwapupward-hub/oar/packages/create-oar-dapp/templates/nextjs

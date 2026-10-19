@@ -1,0 +1,1445 @@
+From cdb4d8c1038d737e5f50a068f22cade23736f2cb Mon Sep 17 00:00:00 2001
+From: gwapupward-hub <235455631+gwapupward-hub@users.noreply.github.com>
+Date: Mon, 19 Oct 2026 04:51:13 +0000
+Subject: [PATCH] Add OAR App Identity Starter community template
+
+Next.js (Solana Kit) starter that prepares an Open App Registry (OAR)
+App ID, manifest, and reciprocal domain and repository proofs from a
+public creator address, offline. Devnet only. No keys, no signing, no
+transactions: registration and program linking happen in the user's
+own wallet. Generated metadata via pnpm generate; lockfile adds only
+this template's importer.
+---
+ .github/workflows/templates.json              |   1 +
+ TEMPLATES.md                                  |   8 +
+ community/oar-identity-starter/.env.example   |   3 +
+ community/oar-identity-starter/.gitignore     |  10 +
+ community/oar-identity-starter/README.md      | 182 ++++++++++++++++++
+ .../oar-identity-starter/next.config.mjs      |   3 +
+ .../oar-identity-starter/oar.config.json      |  11 ++
+ community/oar-identity-starter/og-image.png   | Bin 0 -> 13679 bytes
+ community/oar-identity-starter/package.json   |  55 ++++++
+ .../scripts/import-anchor-programs.mjs        |  63 ++++++
+ .../scripts/lib/anchor-programs.mjs           |  37 ++++
+ .../scripts/lib/manifest-uri.mjs              |  65 +++++++
+ .../scripts/prepare-oar.mjs                   |  99 ++++++++++
+ .../oar-identity-starter/src/app/globals.css  | 105 ++++++++++
+ .../oar-identity-starter/src/app/layout.tsx   |  16 ++
+ .../oar-identity-starter/src/app/page.tsx     |  54 ++++++
+ community/oar-identity-starter/src/lib/oar.ts |  63 ++++++
+ community/oar-identity-starter/tsconfig.json  |  24 +++
+ pnpm-lock.yaml                                | 128 ++++++++++++
+ templates.json                                |  20 ++
+ 20 files changed, 947 insertions(+)
+ create mode 100644 community/oar-identity-starter/.env.example
+ create mode 100644 community/oar-identity-starter/.gitignore
+ create mode 100644 community/oar-identity-starter/README.md
+ create mode 100644 community/oar-identity-starter/next.config.mjs
+ create mode 100644 community/oar-identity-starter/oar.config.json
+ create mode 100644 community/oar-identity-starter/og-image.png
+ create mode 100644 community/oar-identity-starter/package.json
+ create mode 100644 community/oar-identity-starter/scripts/import-anchor-programs.mjs
+ create mode 100644 community/oar-identity-starter/scripts/lib/anchor-programs.mjs
+ create mode 100644 community/oar-identity-starter/scripts/lib/manifest-uri.mjs
+ create mode 100644 community/oar-identity-starter/scripts/prepare-oar.mjs
+ create mode 100644 community/oar-identity-starter/src/app/globals.css
+ create mode 100644 community/oar-identity-starter/src/app/layout.tsx
+ create mode 100644 community/oar-identity-starter/src/app/page.tsx
+ create mode 100644 community/oar-identity-starter/src/lib/oar.ts
+ create mode 100644 community/oar-identity-starter/tsconfig.json
+
+diff --git a/.github/workflows/templates.json b/.github/workflows/templates.json
+index 36b6ba6..204756f 100644
+--- a/.github/workflows/templates.json
++++ b/.github/workflows/templates.json
+@@ -8,6 +8,7 @@
+   "community/lazorkit-starter-vite",
+   "community/merkle-airdrop",
+   "community/moneygram-onramp",
++  "community/oar-identity-starter",
+   "community/pay-gate-inference",
+   "community/pay-high-throughput-proxy",
+   "community/phantom-embedded-js",
+diff --git a/TEMPLATES.md b/TEMPLATES.md
+index 36d0067..adaeab0 100644
+--- a/TEMPLATES.md
++++ b/TEMPLATES.md
+@@ -282,6 +282,14 @@ Templates maintained by the Solana community
+ 
+ `solana` `moneygram` `onramp` `offramp` `usdc` `payments` `kit` `nextjs` `solana-kit` `tailwind` `typescript`
+ 
++### [oar-identity-starter](community/oar-identity-starter)
++
++`gh:solana-foundation/templates/community/oar-identity-starter`
++
++> Next.js starter with an OAR App ID and verifiable program, domain and repo links
++
++`solana` `oar` `app-identity` `verification` `program-metadata` `nextjs` `solana-kit` `typescript` `devnet`
++
+ ### [pay-gate-inference](community/pay-gate-inference)
+ 
+ `gh:solana-foundation/templates/community/pay-gate-inference`
+diff --git a/community/oar-identity-starter/.env.example b/community/oar-identity-starter/.env.example
+new file mode 100644
+index 0000000..e63a301
+--- /dev/null
++++ b/community/oar-identity-starter/.env.example
+@@ -0,0 +1,3 @@
++# Server-side only: never prefix with NEXT_PUBLIC_.
++# Development falls back to the public Devnet endpoint; production builds require a dedicated HTTPS Devnet RPC.
++OAR_DEVNET_RPC_URL=https://api.devnet.solana.com
+diff --git a/community/oar-identity-starter/.gitignore b/community/oar-identity-starter/.gitignore
+new file mode 100644
+index 0000000..66c9f50
+--- /dev/null
++++ b/community/oar-identity-starter/.gitignore
+@@ -0,0 +1,10 @@
++node_modules/
++.next/
++out/
++.env
++.env.*
++!.env.example
++*.tsbuildinfo
++.DS_Store
++*-keypair.json
++id.json
+diff --git a/community/oar-identity-starter/README.md b/community/oar-identity-starter/README.md
+new file mode 100644
+index 0000000..24492c2
+--- /dev/null
++++ b/community/oar-identity-starter/README.md
+@@ -0,0 +1,182 @@
++# OAR App Identity Starter
++
++A Next.js starter for Solana apps that want a public, independently verifiable identity: one **OAR App ID** that
++ties your app's name to the programs, domain and source repository that actually belong to it.
++
++```bash
++npx create-solana-dapp@latest my-app -t gh:solana-foundation/templates/community/oar-identity-starter
++cd my-app
++npm run dev
++```
++
++You can build and run the app without a wallet, an RPC key, or any knowledge of OAR. Identity comes later, when you
++are ready.
++
++> **Devnet only.** The OAR registry is deployed on Solana Devnet. Mainnet is **not** available (NO-GO) until an
++> independent security review and multisig governance are complete. OAR is an open, permissionless community
++> project; it is not a Solana Foundation standard or endorsement.
++
++## What OAR is
++
++Open App Registry (OAR) answers a question wallets and explorers cannot answer from an address alone: _which app is
++this program, and who runs it?_
++
++- An **App ID** is a Solana account (a PDA of the OAR registry program) derived from a creator wallet and a nonce.
++  It stores the location and SHA-256 hash of your app's **manifest**.
++- The **manifest** is a small JSON file you host. It names your app and **claims** the programs, domains and
++  repositories it uses.
++- A claim only becomes a **link** when the other side agrees: your domain serves a proof file naming the App ID, your
++  repository commits one, and your program's upgrade authority writes a backlink onchain.
++
++Anyone can register an App ID. Nobody can make a program, domain or repository point back to it without controlling
++that program, domain or repository. That is what makes the links checkable by anyone.
++
++## Registration is not verification
++
++| You see              | It means                                                                                                    |
++| -------------------- | ----------------------------------------------------------------------------------------------------------- |
++| Registered           | A creator wallet signed an AppRecord. Nothing else.                                                         |
++| Linked (verified)    | Both sides point to each other: the manifest claims it and its own proof names this App ID on this cluster. |
++| Attested             | No live proof, but an issuer **you chose to trust** attested the link. No issuer is trusted by default.     |
++| Unverified           | The proof is missing or incomplete. This is not a statement that the app is unsafe.                         |
++| Temporarily unavail. | An RPC, HTTP or DNS check could not finish. Retry; it is never a failure.                                   |
++| Disputed / invalid   | Evidence that was read contradicts the claim (it names another App ID or cluster).                          |
++
++None of these states is a security audit or an endorsement. Do not call your app "verified" because you generated
++files or registered a record.
++
++## Project layout
++
++| Path                                 | What it is                                                                       |
++| ------------------------------------ | -------------------------------------------------------------------------------- |
++| `src/app/page.tsx`                   | Your app. Start here.                                                            |
++| `oar.config.json`                    | Your identity inputs: name, domain, repositories, deployed program IDs, nonce.   |
++| `scripts/prepare-oar.mjs`            | `npm run oar:prepare`: derives the App ID and writes the manifest and proofs.    |
++| `scripts/import-anchor-programs.mjs` | `npm run oar:anchor`: copies `[programs.devnet]` IDs from an Anchor workspace.   |
++| `src/lib/oar.ts`                     | Server-only helper that resolves a program's verified identity with the OAR SDK. |
++
++## 1. Build and run
++
++```bash
++npm install
++npm run dev        # http://localhost:3000
++npm run typecheck
++npm run build
++```
++
++Nothing here needs a wallet. The page reminds visitors that the app is "not registered" until you finish the steps
++below.
++
++## 2. Configure your domain and repository
++
++Edit `oar.config.json`:
++
++```json
++{
++  "standard": "0.1",
++  "cluster": "solana:devnet",
++  "name": "My App",
++  "summary": "One sentence, up to 140 characters",
++  "category": "defi",
++  "domain": "myapp.xyz",
++  "repositories": ["https://github.com/me/my-app"],
++  "programs": [],
++  "nonce": 0
++}
++```
++
++Only list a domain, repository or program you control. `domain` may stay empty during local development, but
++`oar:prepare` refuses to run until you set a domain or a `manifestUri`.
++
++If you have an Anchor workspace with deployed Devnet programs, import their **public** IDs:
++
++```bash
++npm run oar:anchor -- --workspace ../my-anchor-project        # preview only
++npm run oar:anchor -- --workspace ../my-anchor-project --yes  # update oar.config.json
++```
++
++It reads `[programs.devnet]` from `Anchor.toml` and never reads keypair files. A program ID in the config is a claim,
++not proof of ownership.
++
++## 3. Derive your App ID and prepare the proofs
++
++Choose the **public** address of the creator wallet. It determines your App ID permanently (with the nonce). Never
++paste a private key or seed phrase anywhere in this project.
++
++```bash
++npm run oar:prepare -- --creator YOUR_PUBLIC_WALLET_ADDRESS
++```
++
++This runs offline. It sends no transaction and signs nothing. It prints the App ID and the manifest's RFC 8785
++SHA-256, and writes:
++
++| File                                   | Where it must be served                                           |
++| -------------------------------------- | ----------------------------------------------------------------- |
++| `public/.well-known/oar-manifest.json` | The manifest, at `https://<domain>/.well-known/oar-manifest.json` |
++| `public/.well-known/oar.json`          | Domain proof, at `https://<domain>/.well-known/oar.json`          |
++| `oar.json`                             | Repository proof, committed at the root of the default branch     |
++
++The manifest and the proofs are always separate files; the name `oar.json` is reserved for proofs. If you host the
++manifest elsewhere, set `manifestUri` to an immutable location: `ar://`, `ipfs://`, or a raw GitHub/GitLab URL that
++names a full commit SHA. Branch, tag and `HEAD` URLs are refused because the onchain hash would stop matching when
++the branch moves.
++
++If the creator already used nonce 0, pass `--nonce 1` (or set `nonce` in the config). Existing files are never
++overwritten unless you pass `--force`.
++
++## 4. Publish the proofs
++
++1. Deploy the site so both `/.well-known/` files return HTTP 200 over HTTPS **without redirects**. (Next.js serves
++   `public/` as-is.) A DNS TXT record `_oar.<domain>` = `oar=solana:devnet:<APP_ID>` also works for the domain.
++2. Commit `oar.json` to the default branch of every listed repository.
++
++## 5. Register on Devnet (explicit wallet approval)
++
++Open https://oarprotocol.xyz/register, connect the **same creator wallet**, and follow the steps. The page fetches
++your hosted manifest, checks it matches the hash you are committing, and shows a plain-language summary before your
++wallet asks you to sign. Only you sign; no key is given to OAR or to this app. Developers with their own secured
++local signer can use the OAR CLI instead (`oar claim register`, see the
++[registration guide](https://github.com/gwapupward-hub/oar/blob/main/docs/REGISTERING.md)).
++
++## 6. Link a program (upgrade-authority backlink)
++
++A program link needs a second signature from the program's **upgrade authority**: it writes a canonical
++[Program Metadata](https://github.com/solana-program/program-metadata) account (seed `oar`) naming your App ID.
++Only the upgrade authority can create that canonical account, which is why the backlink proves control. Use the
++registration page or `oar claim link-program <PROGRAM_ID>`; for a Squads-held authority, `--squads` prints an unsigned
++proposal instead of signing. An immutable program (no upgrade authority) cannot publish a backlink and can only be
++attested by an issuer.
++
++## 7. Inspect the verification states
++
++- Explorer: `https://oarprotocol.xyz/app/<APP_ID>` and `https://oarprotocol.xyz/program/<PROGRAM_ID>`.
++- In code, `getProgramIdentity(programId)` from `src/lib/oar.ts` (server components or route handlers only) returns:
++  - `verified`: both sides agree. Only then show the app name as the program's publisher.
++  - `unverified`: no matching proof. Not a statement that the program is unsafe.
++  - `unavailable`: the RPC read failed. Show a retry, never a failure.
++
++In production, set the server-side `OAR_DEVNET_RPC_URL` to a dedicated HTTPS Devnet RPC. Do not put an
++API-key-bearing URL in a `NEXT_PUBLIC_` variable.
++
++## Security boundaries
++
++- No private keys, keypair files or seed phrases are read, generated or stored. `.gitignore` excludes
++  `*-keypair.json` and `id.json`.
++- No script submits a transaction or signs anything. Registration and program linking always require your own wallet's
++  explicit approval, outside this template.
++- No issuer is trusted by default, so nothing is shown as `attested` unless you configure it.
++- `oar:prepare` and `oar:anchor` only write local files, and refuse to overwrite them without `--force` / `--yes`.
++
++## Current limitations
++
++- Devnet only; mainnet is NO-GO.
++- The OAR SDK is installed from its GitHub release tarball (`@open-app-registry/sdk`), not from the npm registry.
++- Domain proofs must be served without redirects; repository proofs are read from the default branch of GitHub or
++  GitLab only.
++- A deployed program is linked separately by its upgrade authority; this template does not deploy programs.
++
++## Learn more
++
++- Protocol, SDK and CLI: https://github.com/gwapupward-hub/oar
++- Explorer and registration: https://oarprotocol.xyz ([source](https://github.com/gwapupward-hub/oar-web))
++- Specification: https://github.com/gwapupward-hub/oar/blob/main/docs/spec-v0.1.md
+diff --git a/community/oar-identity-starter/next.config.mjs b/community/oar-identity-starter/next.config.mjs
+new file mode 100644
+index 0000000..f4efb8b
+--- /dev/null
++++ b/community/oar-identity-starter/next.config.mjs
+@@ -0,0 +1,3 @@
++/** @type {import('next').NextConfig} */
++const nextConfig = { reactStrictMode: true }
++export default nextConfig
+diff --git a/community/oar-identity-starter/oar.config.json b/community/oar-identity-starter/oar.config.json
+new file mode 100644
+index 0000000..527a2cf
+--- /dev/null
++++ b/community/oar-identity-starter/oar.config.json
+@@ -0,0 +1,11 @@
++{
++  "standard": "0.1",
++  "cluster": "solana:devnet",
++  "name": "OAR Starter App",
++  "summary": "",
++  "category": "other",
++  "domain": "",
++  "repositories": [],
++  "programs": [],
++  "nonce": 0
++}
+diff --git a/community/oar-identity-starter/og-image.png b/community/oar-identity-starter/og-image.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..e4e279e2d6f86b7f2d002044650791a704d6ef41
+GIT binary patch
+literal 13679
+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
+a7bmJuUcCQGo%>ZMo=e7N=W`7Sk^cu(nB}zq
+
+literal 0
+HcmV?d00001
+
+diff --git a/community/oar-identity-starter/package.json b/community/oar-identity-starter/package.json
+new file mode 100644
+index 0000000..eda946e
+--- /dev/null
++++ b/community/oar-identity-starter/package.json
+@@ -0,0 +1,55 @@
++{
++  "name": "oar-identity-starter",
++  "displayName": "OAR App Identity Starter",
++  "description": "Next.js starter with an OAR App ID and verifiable program, domain and repo links",
++  "usecase": "Starter",
++  "keywords": [
++    "solana",
++    "oar",
++    "app-identity",
++    "verification",
++    "program-metadata",
++    "nextjs",
++    "solana-kit",
++    "typescript",
++    "devnet"
++  ],
++  "create-solana-dapp": {
++    "instructions": [
++      "An OAR-ready starter is not a registered or verified application.",
++      "Start building:",
++      "+{pm} run dev",
++      "Edit oar.config.json with your real domain, repository and any deployed program IDs, then prepare identity files from your PUBLIC creator address:",
++      "+{pm} run oar:prepare -- --creator YOUR_PUBLIC_WALLET",
++      "Host the generated files, register on Devnet with your own wallet at https://oarprotocol.xyz/register, and inspect every link's state."
++    ]
++  },
++  "version": "0.1.0",
++  "private": true,
++  "type": "module",
++  "scripts": {
++    "dev": "next dev",
++    "build": "next build",
++    "start": "next start",
++    "typecheck": "tsc --noEmit",
++    "oar:prepare": "node scripts/prepare-oar.mjs",
++    "oar:anchor": "node scripts/import-anchor-programs.mjs"
++  },
++  "dependencies": {
++    "@open-app-registry/sdk": "https://github.com/gwapupward-hub/oar/releases/download/v0.1.1-rc.2/open-app-registry-sdk-0.1.1-rc.2.tgz",
++    "@solana/kit": "8.4.0",
++    "next": "16.3.8",
++    "react": "19.3.0",
++    "react-dom": "19.3.0",
++    "server-only": "0.0.1"
++  },
++  "devDependencies": {
++    "@types/node": "24.10.4",
++    "@types/react": "19.3.0",
++    "@types/react-dom": "19.2.3",
++    "typescript": "5.9.3"
++  },
++  "engines": {
++    "node": ">=22"
++  }
++}
+diff --git a/community/oar-identity-starter/scripts/import-anchor-programs.mjs b/community/oar-identity-starter/scripts/import-anchor-programs.mjs
+new file mode 100644
+index 0000000..9ffa5cf
+--- /dev/null
++++ b/community/oar-identity-starter/scripts/import-anchor-programs.mjs
+@@ -0,0 +1,63 @@
++#!/usr/bin/env node
++// Import public Anchor Devnet program IDs into OAR config with explicit confirmation.
++// Does not run Anchor, sign transactions, or treat a declared address as deployed or verified.
++import { existsSync, readFileSync, writeFileSync } from 'node:fs'
++import { join, resolve } from 'node:path'
++import { parseAnchorDevnetPrograms } from './lib/anchor-programs.mjs'
++
++/** `pnpm run x -- --flag` forwards the `--` separator itself; npm and yarn strip it. */
++const cliArgs = () => (process.argv[2] === '--' ? process.argv.slice(3) : process.argv.slice(2))
++
++function fail(msg) {
++  throw new Error(msg)
++}
++function parse(args) {
++  const options = { workspace: '.', yes: false, replace: false }
++  for (let i = 0; i < args.length; i++) {
++    const a = args[i]
++    if (a === '--workspace') {
++      if (options.workspace !== '.' || !args[i + 1] || args[i + 1].startsWith('--'))
++        fail('Invalid --workspace argument.')
++      options.workspace = args[++i]
++    } else if (a === '--yes') {
++      if (options.yes) fail('Repeated --yes.')
++      options.yes = true
++    } else if (a === '--replace') {
++      if (options.replace) fail('Repeated --replace.')
++      options.replace = true
++    } else fail('Unknown argument: ' + a)
++  }
++  if (options.replace && !options.yes) fail('--replace requires --yes (writes must be explicit).')
++  return options
++}
++function same(a, b) {
++  return a.length === b.length && a.every((v, i) => v === b[i])
++}
++function main() {
++  const o = parse(cliArgs())
++  const path = join(resolve(o.workspace), 'Anchor.toml')
++  if (!existsSync(path)) fail('No Anchor.toml found at ' + path)
++  const ids = parseAnchorDevnetPrograms(readFileSync(path, 'utf8'))
++  const configPath = resolve('oar.config.json')
++  const cfg = JSON.parse(readFileSync(configPath, 'utf8'))
++  if (cfg.cluster !== 'solana:devnet' || cfg.standard !== '0.1')
++    fail('Only OAR App Standard 0.1 Devnet config is supported.')
++  if (!Array.isArray(cfg.programs) || !cfg.programs.every((v) => typeof v === 'string'))
++    fail('oar.config.json programs must be an array of addresses.')
++  const current = cfg.programs
++  console.log('Anchor program addresses on Devnet (declarations, NOT deployed proofs):')
++  for (const id of ids) console.log('  ' + id)
++  if (same(current, ids)) return console.log('OAR config already matches. No change.')
++  if (!o.yes) return console.log('Preview only. Run again with --yes to update oar.config.json.')
++  if (current.length && !o.replace)
++    fail('Refusing to replace existing program list; use --yes --replace after reviewing the preview.')
++  writeFileSync(configPath, JSON.stringify({ ...cfg, programs: ids }, null, 2) + '\n')
++  console.log('Updated local oar.config.json. No transaction was sent.')
++  console.log('Run npm run oar:prepare when ready, then link deployed programs with their upgrade authority.')
++}
++try {
++  main()
++} catch (e) {
++  console.error('oar:anchor: ' + e.message)
++  process.exitCode = 1
++}
+diff --git a/community/oar-identity-starter/scripts/lib/anchor-programs.mjs b/community/oar-identity-starter/scripts/lib/anchor-programs.mjs
+new file mode 100644
+index 0000000..bcd1920
+--- /dev/null
++++ b/community/oar-identity-starter/scripts/lib/anchor-programs.mjs
+@@ -0,0 +1,37 @@
++// Narrow, read-only parser for Anchor.toml [programs.devnet] declarations.
++// Fail closed on unsupported syntax; never infer authority or proof from a program ID.
++import { address } from '@solana/kit'
++
++export function parseAnchorDevnetPrograms(toml) {
++  if (typeof toml !== 'string') throw new TypeError('Anchor.toml must be text.')
++  let section = ''
++  const seen = new Set()
++  const programs = []
++  for (const [i, raw] of toml
++    .replace(/^\uFEFF/, '')
++    .split(/\r?\n/)
++    .entries()) {
++    const line = raw.trim()
++    if (!line || line.startsWith('#')) continue
++    if (line.startsWith('[')) {
++      if (!/^\[\[?[a-zA-Z0-9_.-]+\]\]?$/.test(line)) throw new Error('Invalid TOML section on line ' + (i + 1))
++      section = line
++      continue
++    }
++    if (section !== '[programs.devnet]') continue
++    const match = line.match(/^([A-Za-z][A-Za-z0-9_-]*)\s*=\s*"([1-9A-HJ-NP-Za-km-z]{32,44})"\s*(?:#.*)?$/)
++    if (!match) throw new Error('Unsupported [programs.devnet] entry on line ' + (i + 1))
++    const [, name, program] = match
++    if (seen.has(name)) throw new Error('Duplicate Anchor program name: ' + name)
++    seen.add(name)
++    try {
++      address(program)
++    } catch {
++      throw new Error('Invalid Solana address for ' + name)
++    }
++    if (programs.includes(program)) throw new Error('Duplicate program address: ' + program)
++    programs.push(program)
++  }
++  if (!programs.length) throw new Error('No [programs.devnet] program addresses found in Anchor.toml.')
++  return programs
++}
+diff --git a/community/oar-identity-starter/scripts/lib/manifest-uri.mjs b/community/oar-identity-starter/scripts/lib/manifest-uri.mjs
+new file mode 100644
+index 0000000..b8eeb17
+--- /dev/null
++++ b/community/oar-identity-starter/scripts/lib/manifest-uri.mjs
+@@ -0,0 +1,65 @@
++// Manifest URI policy for `oar:prepare`. Mirrors `checkManifestUri` in @open-app-registry/sdk, which SDK
++// releases up to 0.1.1-rc.2 do not export; prepare-oar.mjs prefers the SDK's version when it exists.
++const MAX_URI_LEN = 256
++const COMMIT_SHA = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/
++
++function forgeRef(u) {
++  const parts = u.pathname
++    .split('/')
++    .filter(Boolean)
++    .map((p) => {
++      try {
++        return decodeURIComponent(p)
++      } catch {
++        return p
++      }
++    })
++  if (u.hostname === 'raw.githubusercontent.com') return parts[2] ?? ''
++  if (u.hostname === 'github.com' || u.hostname === 'www.github.com')
++    return ['raw', 'blob'].includes(parts[2]) ? (parts[3] ?? '') : ''
++  if (u.hostname === 'gitlab.com') {
++    const i = parts.indexOf('-')
++    return i >= 0 && ['raw', 'blob'].includes(parts[i + 1]) ? (parts[i + 2] ?? '') : undefined
++  }
++  if (u.hostname === 'cdn.jsdelivr.net' && parts[0] === 'gh') {
++    const at = (parts[2] ?? '').indexOf('@')
++    return at >= 0 ? parts[2].slice(at + 1) : ''
++  }
++  return undefined
++}
++
++/** @returns {{ ok: true } | { ok: false, detail: string }} */
++export function checkManifestUri(uri) {
++  if (new TextEncoder().encode(uri).length > MAX_URI_LEN)
++    return { ok: false, detail: `manifest URI is longer than ${MAX_URI_LEN} bytes` }
++  if (uri.startsWith('ar://') || uri.startsWith('ipfs://')) {
++    return uri.length > (uri.startsWith('ar://') ? 5 : 7)
++      ? { ok: true }
++      : { ok: false, detail: 'manifest URI has no content identifier' }
++  }
++  if (!uri.startsWith('https://'))
++    return { ok: false, detail: `unsupported manifest URI scheme (use https://, ar:// or ipfs://): ${uri}` }
++  let u
++  try {
++    u = new URL(uri)
++  } catch {
++    return { ok: false, detail: `not a valid URL: ${uri}` }
++  }
++  if (u.username || u.password) return { ok: false, detail: 'manifest URI must not embed credentials' }
++  const file = u.pathname.split('/').filter(Boolean).pop() ?? ''
++  if (file.toLowerCase() === 'oar.json') {
++    return {
++      ok: false,
++      detail:
++        '`oar.json` is reserved for domain and repository proofs; host the manifest as a separate file such as oar-manifest.json',
++    }
++  }
++  const ref = forgeRef(u)
++  if (ref !== undefined && !COMMIT_SHA.test(ref)) {
++    return {
++      ok: false,
++      detail: `${uri} ${ref ? `follows the mutable reference "${ref}"` : 'does not name a commit'}; pin the manifest to a full commit SHA (or use ar:// or ipfs://)`,
++    }
++  }
++  return { ok: true }
++}
+diff --git a/community/oar-identity-starter/scripts/prepare-oar.mjs b/community/oar-identity-starter/scripts/prepare-oar.mjs
+new file mode 100644
+index 0000000..31bfaef
+--- /dev/null
++++ b/community/oar-identity-starter/scripts/prepare-oar.mjs
+@@ -0,0 +1,99 @@
++#!/usr/bin/env node
++// Offline preparation only. Derives an App ID from a PUBLIC key and produces validated files.
++// No signer material, RPC calls, transactions, deployment, or implicit registration.
++import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
++import { dirname, resolve } from 'node:path'
++import { address } from '@solana/kit'
++import * as sdk from '@open-app-registry/sdk'
++import { checkManifestUri as localCheckManifestUri } from './lib/manifest-uri.mjs'
++
++/** `pnpm run x -- --flag` forwards the `--` separator itself; npm and yarn strip it. */
++const cliArgs = () => (process.argv[2] === '--' ? process.argv.slice(3) : process.argv.slice(2))
++
++const { buildClaimFiles, findAppId, hashManifestHex, validateManifest } = sdk
++const checkManifestUri = sdk.checkManifestUri ?? localCheckManifestUri
++
++function fail(reason) {
++  throw new Error(reason)
++}
++function parse(argv) {
++  let creator,
++    force = false,
++    nonce
++  for (let i = 0; i < argv.length; i++) {
++    const arg = argv[i]
++    if (arg === '--creator' && !creator) creator = argv[++i]
++    else if (arg === '--nonce' && nonce === undefined) nonce = argv[++i]
++    else if (arg === '--force') force = true
++    else fail('Unexpected or repeated option: ' + arg)
++  }
++  if (!creator || !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(creator))
++    fail('Provide --creator with a public Solana wallet address (not a keypair file).')
++  if (nonce !== undefined && !/^(0|[1-9][0-9]*)$/.test(nonce)) fail('--nonce must be a non-negative decimal integer.')
++  return { creator: address(creator), nonce, force }
++}
++function save(path, value, force) {
++  if (existsSync(path) && !force) fail('File exists: ' + path + ' (review changes and pass --force to overwrite).')
++  mkdirSync(dirname(path), { recursive: true })
++  writeFileSync(path, JSON.stringify(value, null, 2) + '\n', { flag: 'w' })
++}
++async function main() {
++  const opts = parse(cliArgs())
++  const cfg = JSON.parse(readFileSync('oar.config.json', 'utf8'))
++  if (cfg.standard !== '0.1' || cfg.cluster !== 'solana:devnet')
++    fail('This starter only supports OAR standard 0.1 on solana:devnet.')
++  const n = opts.nonce ?? String(cfg.nonce ?? 0)
++  if (!/^(0|[1-9][0-9]*)$/.test(n)) fail('Invalid config nonce.')
++  const nonce = BigInt(n)
++  if (nonce > 18446744073709551615n) fail('Nonce exceeds u64.')
++  const appId = await findAppId({ creator: opts.creator, nonce })
++  const domains = cfg.domain ? [cfg.domain] : []
++  const repos = cfg.repositories ?? []
++  const programs = cfg.programs ?? []
++  if (!Array.isArray(repos) || !Array.isArray(programs)) fail('repositories and programs must be arrays.')
++  if (cfg.manifestUri !== undefined && typeof cfg.manifestUri !== 'string') fail('manifestUri must be a string.')
++  if (cfg.manifestUri) {
++    const policy = checkManifestUri(cfg.manifestUri.trim())
++    if (!policy.ok) fail('Manifest URI refused: ' + policy.detail)
++  }
++  const files = buildClaimFiles({
++    appId,
++    cluster: cfg.cluster,
++    name: cfg.name,
++    ...(cfg.summary ? { summary: cfg.summary } : {}),
++    categories: [cfg.category ?? 'other'],
++    domains,
++    repositories: repos,
++    programs: programs.map((p) => address(p)),
++    ...(cfg.manifestUri ? { manifestUri: cfg.manifestUri } : {}),
++  })
++  const verified = validateManifest(files.manifest)
++  if (!verified.valid) fail('Manifest failed SDK validation: ' + verified.errors.join('; '))
++  const policy = checkManifestUri(files.manifestUri)
++  if (!policy.ok) fail('Manifest URI refused: ' + policy.detail)
++  const outputs = [
++    ['public/.well-known/oar-manifest.json', files.manifest],
++    ...(domains.length ? [['public/.well-known/oar.json', files.wellKnown]] : []),
++    ...(repos.length ? [['oar.json', files.repoProof]] : []),
++  ]
++  if (repos.length === 0 && existsSync('oar.json'))
++    fail('Stale oar.json exists but no repository is claimed; remove it after reviewing.')
++  if (!opts.force) {
++    for (const [path] of outputs) if (existsSync(path)) fail('Refusing to overwrite ' + path + '; use --force.')
++  }
++  for (const [path, value] of outputs) save(resolve(path), value, opts.force)
++  console.log('App ID: ' + appId)
++  console.log('Cluster: solana:devnet | creator nonce: ' + nonce)
++  console.log('Manifest URI: ' + files.manifestUri)
++  console.log('Manifest SHA-256 (RFC 8785): ' + hashManifestHex(files.manifest))
++  console.log('Prepared ' + outputs.map(([path]) => path).join(', '))
++  console.log(
++    'Not registered. Deploy these files, verify hosting, then sign registration at https://oarprotocol.xyz/register.',
++  )
++  if (programs.length)
++    console.log('Each listed program also needs its upgrade-authority-signed canonical OAR backlink.')
++}
++main().catch((e) => {
++  console.error('oar:prepare: ' + e.message)
++  process.exitCode = 1
++})
+diff --git a/community/oar-identity-starter/src/app/globals.css b/community/oar-identity-starter/src/app/globals.css
+new file mode 100644
+index 0000000..10f6b60
+--- /dev/null
++++ b/community/oar-identity-starter/src/app/globals.css
+@@ -0,0 +1,105 @@
++:root {
++  color-scheme: dark;
++  font-family: Inter, ui-sans-serif, system-ui, Arial, sans-serif;
++  background: #0b1012;
++  color: #f2f7f3;
++}
++* {
++  box-sizing: border-box;
++}
++body {
++  margin: 0;
++  line-height: 1.55;
++}
++a {
++  color: #8af2b0;
++  text-underline-offset: 3px;
++}
++.shell {
++  max-width: 920px;
++  margin: 0 auto;
++  padding: 82px 24px 60px;
++}
++.eyebrow {
++  color: #8af2b0;
++  font-size: 12px;
++  letter-spacing: 0.2em;
++  font-weight: 750;
++}
++h1 {
++  font-size: clamp(42px, 7vw, 80px);
++  line-height: 1.03;
++  letter-spacing: -0.055em;
++  margin: 22px 0;
++}
++.lead {
++  font-size: clamp(18px, 3vw, 26px);
++  max-width: 680px;
++  color: #b6c3bc;
++}
++.panel {
++  margin: 48px 0 36px;
++  padding: 30px;
++  border: 1px solid #304137;
++  border-radius: 18px;
++  background: #142019;
++}
++.panel h2 {
++  margin: 16px 0 8px;
++}
++.panel p {
++  color: #bfcdc3;
++}
++.tag {
++  font-size: 12px;
++  color: #c3f7d4;
++  text-transform: uppercase;
++  letter-spacing: 0.07em;
++}
++.steps {
++  display: grid;
++  grid-template-columns: repeat(3, minmax(0, 1fr));
++  gap: 16px;
++}
++.steps > div {
++  border: 1px solid #26352d;
++  border-radius: 14px;
++  padding: 18px;
++}
++.steps span {
++  color: #8af2b0;
++  font-weight: 800;
++}
++.steps h3 {
++  margin: 12px 0 4px;
++}
++.steps p {
++  font-size: 14px;
++  color: #b7c9bc;
++}
++code {
++  overflow-wrap: anywhere;
++  color: #9ef8bd;
++}
++footer {
++  display: flex;
++  gap: 24px;
++  flex-wrap: wrap;
++  margin-top: 40px;
++}
++.footnote {
++  margin-top: 48px;
++  color: #a1b0a5;
++  font-size: 12px;
++}
++@media (max-width: 650px) {
++  .shell {
++    padding-top: 48px;
++  }
++  .steps {
++    grid-template-columns: 1fr;
++  }
++  .panel {
++    padding: 22px;
++  }
++}
+diff --git a/community/oar-identity-starter/src/app/layout.tsx b/community/oar-identity-starter/src/app/layout.tsx
+new file mode 100644
+index 0000000..717a7c7
+--- /dev/null
++++ b/community/oar-identity-starter/src/app/layout.tsx
+@@ -0,0 +1,16 @@
++import type { Metadata } from 'next'
++import './globals.css'
++import config from '../../oar.config.json'
++
++export const metadata: Metadata = {
++  title: config.name,
++  description: 'An OAR-ready Solana application, not yet registered or verified.',
++}
++
++export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
++  return (
++    <html lang="en">
++      <body>{children}</body>
++    </html>
++  )
++}
+diff --git a/community/oar-identity-starter/src/app/page.tsx b/community/oar-identity-starter/src/app/page.tsx
+new file mode 100644
+index 0000000..30ac009
+--- /dev/null
++++ b/community/oar-identity-starter/src/app/page.tsx
+@@ -0,0 +1,54 @@
++import config from '../../oar.config.json'
++
++export default function Home() {
++  return (
++    <main className="shell">
++      <div className="eyebrow">OAR APP STANDARD · DEVNET STARTER</div>
++      <h1>{config.name}</h1>
++      <p className="lead">Your Solana application starts with an identity, not just an address.</p>
++      <section className="panel">
++        <div className="tag">Setup ready — not registered</div>
++        <h2>Build your application here</h2>
++        <p>
++          Edit <code>src/app/page.tsx</code>, then add your public domain and program addresses to{' '}
++          <code>oar.config.json</code>. OAR helps users verify which programs, domain and repository actually belong to
++          your application.
++        </p>
++      </section>
++      <section className="steps">
++        <div>
++          <span>01</span>
++          <h3>Build</h3>
++          <p>Create your product using Solana tools of your choice.</p>
++        </div>
++        <div>
++          <span>02</span>
++          <h3>Prepare</h3>
++          <p>
++            Run <code>npm run oar:prepare -- --creator &lt;PUBLIC_ADDRESS&gt;</code>.
++          </p>
++        </div>
++        <div>
++          <span>03</span>
++          <h3>Prove</h3>
++          <p>Host the generated files, then authorize registration on Devnet.</p>
++        </div>
++      </section>
++      <footer>
++        <a href="https://oarprotocol.xyz/register" target="_blank" rel="noopener noreferrer">
++          OAR registration
++        </a>
++        <a
++          href="https://github.com/gwapupward-hub/oar/blob/main/docs/REGISTERING.md"
++          target="_blank"
++          rel="noopener noreferrer"
++        >
++          Protocol documentation
++        </a>
++      </footer>
++      <p className="footnote">
++        A registered App ID is not a security audit or endorsement. Verification requires matching independent proofs.
++      </p>
++    </main>
++  )
++}
+diff --git a/community/oar-identity-starter/src/lib/oar.ts b/community/oar-identity-starter/src/lib/oar.ts
+new file mode 100644
+index 0000000..7fc0fe8
+--- /dev/null
++++ b/community/oar-identity-starter/src/lib/oar.ts
+@@ -0,0 +1,63 @@
++// Server-only Solana Kit adapter for the existing OAR resolver.
++// The SDK checks both the canonical Program Metadata backlink and the app manifest.
++import 'server-only'
++import { address, createSolanaRpc } from '@solana/kit'
++import { resolveProgram } from '@open-app-registry/sdk'
++
++export const OAR_CLUSTER = 'solana:devnet' as const
++
++/** Do not put API-key-bearing RPC URLs in NEXT_PUBLIC_ environment variables. */
++function devnetRpcUrl(): string {
++  const input = process.env.OAR_DEVNET_RPC_URL?.trim()
++  if (!input && process.env.NODE_ENV === 'production') {
++    throw new Error('Configure a dedicated OAR_DEVNET_RPC_URL on your server.')
++  }
++  const url = input ?? 'https://api.devnet.solana.com'
++  let parsed: URL
++  try {
++    parsed = new URL(url)
++  } catch {
++    throw new Error('Invalid Devnet RPC URL.')
++  }
++  if (parsed.protocol !== 'https:' || parsed.username || parsed.password || parsed.hash) {
++    throw new Error('RPC must be an HTTPS URL without embedded credentials or fragments.')
++  }
++  return url
++}
++
++/**
++ * What OAR can say about a deployed program. Only `verified` means both sides agree: the app's manifest claims the
++ * program and the program's upgrade authority published a canonical backlink to that App ID.
++ * - `unverified`: no matching proof was found. It does not mean the program is unsafe or inactive.
++ * - `unavailable`: verification could not complete (RPC outage); retry. Never show this as a failure.
++ * No state is a security audit or endorsement, and no global trust badge is issued.
++ */
++export type ProgramIdentity =
++  | { state: 'verified'; appId: string; name: string; program: string; cluster: typeof OAR_CLUSTER }
++  | { state: 'unverified'; program: string; cluster: typeof OAR_CLUSTER }
++  | { state: 'unavailable'; program: string; cluster: typeof OAR_CLUSTER; detail: string }
++
++export async function getProgramIdentity(programId: string): Promise<ProgramIdentity> {
++  const program = address(programId)
++  const rpc = createSolanaRpc(devnetRpcUrl())
++  const result = await resolveProgram(rpc, program, {
++    cluster: OAR_CLUSTER,
++    trustedIssuers: [],
++  })
++  if (result && 'status' in result && result.status === 'unavailable') {
++    // Written to compile against SDK releases before and after the typed `unavailable` result.
++    const detail =
++      'detail' in result && typeof result.detail === 'string' ? result.detail : 'OAR RPC read unavailable; retry'
++    return { state: 'unavailable', program, cluster: OAR_CLUSTER, detail }
++  }
++  if (!result || !('app' in result) || result.link?.state !== 'verified' || !result.app.manifest.ok) {
++    return { state: 'unverified', program, cluster: OAR_CLUSTER }
++  }
++  return {
++    state: 'verified',
++    appId: result.app.appId,
++    name: result.app.manifest.manifest.name,
++    program: result.program,
++    cluster: OAR_CLUSTER,
++  }
++}
+diff --git a/community/oar-identity-starter/tsconfig.json b/community/oar-identity-starter/tsconfig.json
+new file mode 100644
+index 0000000..d4c049b
+--- /dev/null
++++ b/community/oar-identity-starter/tsconfig.json
+@@ -0,0 +1,24 @@
++{
++  "compilerOptions": {
++    "target": "ES2017",
++    "lib": ["dom", "dom.iterable", "esnext"],
++    "allowJs": true,
++    "skipLibCheck": true,
++    "strict": true,
++    "noEmit": true,
++    "esModuleInterop": true,
++    "module": "esnext",
++    "moduleResolution": "bundler",
++    "resolveJsonModule": true,
++    "isolatedModules": true,
++    "jsx": "react-jsx",
++    "incremental": true,
++    "plugins": [
++      {
++        "name": "next"
++      }
++    ]
++  },
++  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
++  "exclude": ["node_modules"]
++}
+diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
+index b1d955b..3dbc1ce 100644
+--- a/pnpm-lock.yaml
++++ b/pnpm-lock.yaml
+@@ -709,6 +709,40 @@ importers:
+         specifier: ^5
+         version: 5.9.3
+ 
++  community/oar-identity-starter:
++    dependencies:
++      '@open-app-registry/sdk':
++        specifier: https://github.com/gwapupward-hub/oar/releases/download/v0.1.1-rc.2/open-app-registry-sdk-0.1.1-rc.2.tgz
++        version: https://github.com/gwapupward-hub/oar/releases/download/v0.1.1-rc.2/open-app-registry-sdk-0.1.1-rc.2.tgz(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(utf-8-validate@5.0.10)
++      '@solana/kit':
++        specifier: 8.4.0
++        version: 8.4.0(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(utf-8-validate@5.0.10)
++      next:
++        specifier: 16.3.8
++        version: 16.3.8(@types/node@24.10.4)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
++      react:
++        specifier: 19.3.0
++        version: 19.3.0
++      react-dom:
++        specifier: 19.3.0
++        version: 19.3.0(react@19.3.0)
++      server-only:
++        specifier: 0.0.1
++        version: 0.0.1
++    devDependencies:
++      '@types/node':
++        specifier: 24.10.4
++        version: 24.10.4
++      '@types/react':
++        specifier: 19.3.0
++        version: 19.3.0
++      '@types/react-dom':
++        specifier: 19.2.3
++        version: 19.2.3(@types/react@19.3.0)
++      typescript:
++        specifier: 5.9.3
++        version: 5.9.3
++
+   community/pay-gate-inference: {}
+ 
+   community/pay-high-throughput-proxy: {}
+@@ -5018,6 +5052,10 @@ packages:
+     resolution: {integrity: sha512-IYqDGiTXab6FniAgnSdZwgWbomxpy9FtYvLKs7wCUs2a8RkITG+DFGO1DM9cr+E3/RgADRpFjrKVaJ1z6sjtEg==}
+     engines: {node: '>= 20.19.0'}
+ 
++  '@noble/hashes@2.4.0':
++    resolution: {integrity: sha512-X5XaVWZIBCT7HHZGm5I7ZQXDwLG+bGXuSrMQAW+7Zvl87h1kmc1ZB1VSRJcpUfoUrGQp4Fkoxm5kZ+Ms+aW+eA==}
++    engines: {node: '>= 20.19.0'}
++
+   '@nodelib/fs.scandir@2.1.5':
+     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}
+     engines: {node: '>= 8'}
+@@ -5051,6 +5089,11 @@ packages:
+       borsh: ^2.0.0
+       buffer: 6.0.1
+ 
++  '@open-app-registry/sdk@https://github.com/gwapupward-hub/oar/releases/download/v0.1.1-rc.2/open-app-registry-sdk-0.1.1-rc.2.tgz':
++    resolution: {tarball: https://github.com/gwapupward-hub/oar/releases/download/v0.1.1-rc.2/open-app-registry-sdk-0.1.1-rc.2.tgz}
++    version: 0.1.1-rc.2
++    engines: {node: '>=20.18'}
++
+   '@openbook-dex/openbook-v2@0.2.10':
+     resolution: {integrity: sha512-JOroVQHeia+RbghpluDJB5psUIhdhYRPLu0zWoG0h5vgDU4SjXwlcC+LJiIa2HVPasvZjWuCtlKWFyrOS75lOA==}
+ 
+@@ -6446,6 +6489,12 @@ packages:
+     peerDependencies:
+       '@solana/kit': ^7.0.0
+ 
++  '@solana-program/program-metadata@0.10.1':
++    resolution: {integrity: sha512-WC2BW9joJg07uMZh5TCjnbvfBAAE1HkW+YI5i0Dxlf5HjIP+tPWZJ90G9TjGKbz2mZ+hIfGAFpxIfVRi9alekw==}
++    hasBin: true
++    peerDependencies:
++      '@solana/kit': ^8.3.0
++
+   '@solana-program/stake@0.2.1':
+     resolution: {integrity: sha512-ssNPsJv9XHaA+L7ihzmWGYcm/+XYURQ8UA3wQMKf6ccEHyHOUgoglkkDU/BoA0+wul6HxZUN0tHFymC0qFw6sg==}
+     peerDependencies:
+@@ -10772,6 +10821,9 @@ packages:
+   ajv@8.17.1:
+     resolution: {integrity: sha512-B/gBuNg5SiMTrPkC+A2+cW0RszwxYmn6VYxB/inlBStS5nx6xHIt/ehKRhIMhqusl7a8LjQoZnjCs5vhwxOQ1g==}
+ 
++  ajv@8.20.0:
++    resolution: {integrity: sha512-Thbli+OlOj+iMPYFBVBfJ3OmCAnaSyNn4M1vz9T6Gka5Jt9ba/HIR56joy65tY6kx/FCF5VXNB819Y7/GUrBGA==}
++
+   amp-message@0.1.2:
+     resolution: {integrity: sha512-JqutcFwoU1+jhv7ArgW38bqrE+LQdcRv4NxNw0mp0JHQyB6tXesWRjtYKlDgHRY2o3JE5UTaBGUK8kSWUdxWUg==}
+ 
+@@ -11423,6 +11475,11 @@ packages:
+   caniuse-lite@1.0.30001791:
+     resolution: {integrity: sha512-yk0l/YSrOnFZk3UROpDLQD9+kC1l4meK/wed583AXrzoarMGJcbRi2Q4RaUYbKxYAsZ8sWmaSa/DsLmdBeI1vQ==}
+ 
++  canonicalize@5.1.0:
++    resolution: {integrity: sha512-bab9+WefZljqQ8jT0qRwVmTyzAUU63K97QIQD3agynIBrb6sa5M2eAy8Hv8K3p4V9+ONVYZKtGYl4Dg+/5Gumw==}
++    engines: {node: '>=22'}
++    hasBin: true
++
+   cashaddrjs@0.4.4:
+     resolution: {integrity: sha512-xZkuWdNOh0uq/mxJIng6vYWfTowZLd9F4GMAlp2DwFHlcCqCm91NtuAc47RuV4L7r4PYcY5p6Cr2OKNb4hnkWA==}
+ 
+@@ -16746,6 +16803,10 @@ packages:
+     resolution: {integrity: sha512-94hK0Hh8rPqQl2xXc3HsaBoOXKV20MToPkcXvwbISWLEs+64sBq5kFgn2kJDHb1Pry9yrP0dxrCI9RRci7RXKg==}
+     engines: {node: '>= 6.0.0', npm: '>= 3.0.0'}
+ 
++  smol-toml@1.9.1:
++    resolution: {integrity: sha512-j7WyPdf0CJoutMzMoPLF/bVXHtKZIT9Rb4eGeEbWw8X2t5oirjPgpL+OpaENZrILYaXqYwnVH+qgUwVbl+pUJQ==}
++    engines: {node: '>= 18'}
++
+   snake-case@3.0.4:
+     resolution: {integrity: sha512-LAOh4z89bGQvl9pFfNF8V146i7o7/CqFPbqzYgP+yYzDIDeS9HaNFtXABamRW+AQzEVODcvE79ljJ+8a9YSdMg==}
+ 
+@@ -22123,6 +22184,8 @@ snapshots:
+ 
+   '@noble/hashes@2.2.0': {}
+ 
++  '@noble/hashes@2.4.0': {}
++
+   '@nodelib/fs.scandir@2.1.5':
+     dependencies:
+       '@nodelib/fs.stat': 2.0.5
+@@ -22166,6 +22229,20 @@ snapshots:
+       - typescript
+       - utf-8-validate
+ 
++  '@open-app-registry/sdk@https://github.com/gwapupward-hub/oar/releases/download/v0.1.1-rc.2/open-app-registry-sdk-0.1.1-rc.2.tgz(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(utf-8-validate@5.0.10)':
++    dependencies:
++      '@noble/hashes': 2.4.0
++      '@solana-program/program-metadata': 0.10.1(@solana/kit@8.4.0(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(utf-8-validate@5.0.10))
++      '@solana/kit': 8.4.0(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(utf-8-validate@5.0.10)
++      '@solana/program-client-core': 8.4.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)
++      ajv: 8.20.0
++      canonicalize: 5.1.0
++    transitivePeerDependencies:
++      - bufferutil
++      - fastestsmallesttextencoderdecoder
++      - typescript
++      - utf-8-validate
++
+   '@openbook-dex/openbook-v2@0.2.10(bufferutil@4.0.9)(encoding@0.1.13)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(utf-8-validate@5.0.10)':
+     dependencies:
+       '@coral-xyz/anchor': 0.29.0(bufferutil@4.0.9)(encoding@0.1.13)(typescript@5.9.3)(utf-8-validate@5.0.10)
+@@ -25678,6 +25755,16 @@ snapshots:
+     dependencies:
+       '@solana/kit': 7.0.0(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(utf-8-validate@5.0.10)
+ 
++  '@solana-program/program-metadata@0.10.1(@solana/kit@8.4.0(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(utf-8-validate@5.0.10))':
++    dependencies:
++      '@solana-program/system': 0.15.0(@solana/kit@8.4.0(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(utf-8-validate@5.0.10))
++      '@solana/kit': 8.4.0(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(utf-8-validate@5.0.10)
++      commander: 13.1.0
++      pako: 2.1.0
++      picocolors: 1.1.1
++      smol-toml: 1.9.1
++      yaml: 2.8.4
++
+   '@solana-program/stake@0.2.1(@solana/kit@2.3.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(ws@8.21.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)))':
+     dependencies:
+       '@solana/kit': 2.3.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(ws@8.21.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))
+@@ -31139,6 +31226,10 @@ snapshots:
+     dependencies:
+       '@types/react': 19.2.9
+ 
++  '@types/react-dom@19.2.3(@types/react@19.3.0)':
++    dependencies:
++      '@types/react': 19.3.0
++
+   '@types/react@19.1.17':
+     dependencies:
+       csstype: 3.2.3
+@@ -33577,6 +33668,13 @@ snapshots:
+       json-schema-traverse: 1.0.0
+       require-from-string: 2.0.2
+ 
++  ajv@8.20.0:
++    dependencies:
++      fast-deep-equal: 3.1.3
++      fast-uri: 3.1.8
++      json-schema-traverse: 1.0.0
++      require-from-string: 2.0.2
++
+   amp-message@0.1.2:
+     dependencies:
+       amp: 0.3.1
+@@ -34424,6 +34522,8 @@ snapshots:
+ 
+   caniuse-lite@1.0.30001791: {}
+ 
++  canonicalize@5.1.0: {}
++
+   cashaddrjs@0.4.4:
+     dependencies:
+       big-integer: 1.6.36
+@@ -39927,6 +40027,32 @@ snapshots:
+       - '@types/node'
+       - babel-plugin-macros
+ 
++  next@16.3.8(@types/node@24.10.4)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
++    dependencies:
++      '@next/env': 16.3.8
++      '@swc/helpers': 0.5.23
++      baseline-browser-mapping: 2.10.27
++      caniuse-lite: 1.0.30001791
++      postcss: 8.5.23
++      react: 19.3.0
++      react-dom: 19.3.0(react@19.3.0)
++      styled-jsx: 5.1.6(react@19.3.0)
++    optionalDependencies:
++      '@next/swc-darwin-arm64': 16.3.8
++      '@next/swc-darwin-x64': 16.3.8
++      '@next/swc-linux-arm64-gnu': 16.3.8
++      '@next/swc-linux-arm64-musl': 16.3.8
++      '@next/swc-linux-x64-gnu': 16.3.8
++      '@next/swc-linux-x64-musl': 16.3.8
++      '@next/swc-win32-arm64-msvc': 16.3.8
++      '@next/swc-win32-x64-msvc': 16.3.8
++      babel-plugin-react-compiler: 1.0.0
++      sharp: 0.35.5(@types/node@24.10.4)
++    transitivePeerDependencies:
++      - '@babel/core'
++      - '@types/node'
++      - babel-plugin-macros
++
+   nf3@0.3.22: {}
+ 
+   nitro@3.0.260610-beta(chokidar@4.0.3)(dotenv@17.2.3)(giget@2.0.0)(idb-keyval@6.2.2)(jiti@2.7.0)(sqlite3@5.1.7)(vite@8.3.2(@types/node@24.5.2)(jiti@2.7.0)(terser@5.46.2)(tsx@4.20.6)(yaml@2.8.4)):
+@@ -42556,6 +42682,8 @@ snapshots:
+ 
+   smart-buffer@4.2.0: {}
+ 
++  smol-toml@1.9.1: {}
++
+   snake-case@3.0.4:
+     dependencies:
+       dot-case: 3.0.4
+diff --git a/templates.json b/templates.json
+index 0c266ad..454cf1c 100644
+--- a/templates.json
++++ b/templates.json
+@@ -621,6 +621,26 @@
+         "displayName": "MoneyGram Ramps On/Off-Ramp",
+         "usecase": "Payments"
+       },
++      {
++        "description": "Next.js starter with an OAR App ID and verifiable program, domain and repo links",
++        "id": "gh:solana-foundation/templates/community/oar-identity-starter",
++        "image": "community/oar-identity-starter/og-image.png",
++        "keywords": [
++          "solana",
++          "oar",
++          "app-identity",
++          "verification",
++          "program-metadata",
++          "nextjs",
++          "solana-kit",
++          "typescript",
++          "devnet"
++        ],
++        "name": "oar-identity-starter",
++        "path": "community/oar-identity-starter",
++        "displayName": "OAR App Identity Starter",
++        "usecase": "Starter"
++      },
+       {
+         "description": "Monetize self-hosted LLM inference with Pay.sh",
+         "id": "gh:solana-foundation/templates/community/pay-gate-inference",
+-- 
+2.43.0
+
