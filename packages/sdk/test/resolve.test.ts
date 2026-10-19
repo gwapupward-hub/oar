@@ -17,6 +17,10 @@ import {
   SAS_PROGRAM_ID,
   buildProgramLink,
   buildProofFile,
+  backlinkMatches,
+  fetchProgramBacklink,
+  fetchClaimAttestation,
+  OarRpcUnavailableError,
   checkDomain,
   deriveAttestationNonce,
   deriveAttestationPda,
@@ -103,7 +107,7 @@ const opts = (routes: Parameters<typeof stubFetch>[0], extra: object = {}) => ({
 test('resolveProgram: bidirectional links verify end to end', async () => {
   const w = await world();
   const r = await resolveProgram(w.rpc, w.program, opts(w.routes));
-  assert.ok(r);
+  assert.ok(r && !('status' in r), 'expected a resolved program, not an unavailable RPC');
   assert.equal(r.app.appId, w.appId);
   assert.equal(r.app.manifest.ok, true);
   assert.equal(r.link?.state, 'verified');
@@ -210,4 +214,103 @@ test('trusted SAS attestations require fresh, expiring v2 evidence', async () =>
     appCluster: CLUSTER, now, payload: { host: 'gwapspot.fun', method: 0 }, expiry: now + 100n });
   app = await resolveApp(w.rpc, w.appId, opts(w.routes, { ...noLive, trustedIssuers: [] }));
   assert.equal(app?.domains[0].state, 'unverified');
+});
+
+/** Simulate dropped RPC reads for selected accounts; unrelated accounts still work. */
+function rpcWithDroppedReads(rpc: ReturnType<typeof svmRpc>, accounts: Address[]): ReturnType<typeof svmRpc> {
+  return {
+    getAccountInfo(pubkey: Address) {
+      if (accounts.includes(pubkey)) {
+        return { send: async () => { throw new Error('RPC transport error: connection reset'); } };
+      }
+      return rpc.getAccountInfo(pubkey);
+    },
+  } as unknown as ReturnType<typeof svmRpc>;
+}
+
+test('backlink RPC outage is unavailable, not invalid, absent or failed', async () => {
+  const w = await world();
+  const failingRpc = rpcWithDroppedReads(w.rpc, [w.metadataPda]);
+  const proof = await fetchProgramBacklink(failingRpc, w.program);
+  assert.equal(proof.status, 'unavailable');
+  const check = backlinkMatches(proof, w.appId, CLUSTER);
+  assert.equal(check.state, 'unverified');
+  assert.match(check.detail ?? '', /RPC.*retry/i);
+
+  const app = await resolveApp(failingRpc, w.appId, opts(w.routes));
+  assert.equal(app?.programs[0]?.state, 'unverified');
+  assert.match(app?.programs[0]?.detail ?? '', /retry/i);
+  assert.equal(app?.domains[0]?.state, 'verified', 'unrelated proofs should remain available');
+  assert.equal(app?.repositories[0]?.state, 'verified');
+
+  const byProgram = await resolveProgram(failingRpc, w.program, opts(w.routes));
+  assert.ok(byProgram, 'RPC outage must not resemble an absent backlink');
+  assert.ok('status' in byProgram);
+  assert.equal(byProgram.status, 'unavailable');
+  assert.match(byProgram.detail, /retry/i);
+});
+
+test('trusted, valid program attestation is not defeated by a transient backlink RPC outage', async () => {
+  const w = await world();
+  const credential = (await generateKeyPairSigner()).address;
+  const now = 1_800_000_000n;
+  await putClaim(w.svm, {
+    credential, appId: w.appId, schema: 'oar-program', subject: w.program,
+    appCluster: CLUSTER, programCluster: CLUSTER, now,
+    payload: { program: Array.from(getAddressEncoder().encode(w.program)), method: 0 },
+    expiry: now + 100n,
+  });
+  const failingRpc = rpcWithDroppedReads(w.rpc, [w.metadataPda]);
+  const app = await resolveApp(failingRpc, w.appId, opts(w.routes, {
+    trustedIssuers: [credential], nowSeconds: now,
+  }));
+  assert.equal(app?.programs[0]?.state, 'attested');
+  assert.deepEqual(app?.programs[0]?.attestedBy, [credential]);
+});
+
+test('AppRecord RPC outage is not treated as missing even after reading a valid backlink', async () => {
+  const w = await world();
+  const failingRpc = rpcWithDroppedReads(w.rpc, [w.appId]);
+  await assert.rejects(resolveApp(failingRpc, w.appId, opts(w.routes)), OarRpcUnavailableError);
+  const program = await resolveProgram(failingRpc, w.program, opts(w.routes));
+  assert.ok(program);
+  assert.ok('status' in program);
+  assert.equal(program.status, 'unavailable');
+  assert.match(program.detail, /retry/i);
+});
+
+test('malformed successfully-read metadata stays invalid; genuinely missing metadata is unverified', async () => {
+  const w = await world();
+  setRawAccount(w.svm, w.metadataPda, PROGRAM_METADATA_PROGRAM_ID, new Uint8Array([0, 1]));
+  const invalid = await fetchProgramBacklink(w.rpc, w.program);
+  assert.equal(invalid.status, 'invalid');
+  assert.equal(backlinkMatches(invalid, w.appId, CLUSTER).state, 'failed');
+
+  const anotherProgram = (await generateKeyPairSigner()).address;
+  const missing = await fetchProgramBacklink(w.rpc, anotherProgram);
+  assert.equal(missing.status, 'none');
+  assert.equal(backlinkMatches(missing, w.appId, CLUSTER).state, 'unverified');
+});
+
+test('trusted attestation RPC outage is unavailable, never invalid evidence or a failed claim', async () => {
+  const w = await world();
+  const credential = (await generateKeyPairSigner()).address;
+  const now = 1_800_000_000n;
+  const attestation = await putClaim(w.svm, {
+    credential, appId: w.appId, schema: 'oar-program', subject: w.program,
+    appCluster: CLUSTER, programCluster: CLUSTER, now,
+    payload: { program: Array.from(getAddressEncoder().encode(w.program)), method: 0 },
+    expiry: now + 100n,
+  });
+  const failingRpc = rpcWithDroppedReads(w.rpc, [w.metadataPda, attestation]);
+  const read = await fetchClaimAttestation(failingRpc, {
+    credential, schema: 'oar-program', appId: w.appId, subject: w.program,
+    appCluster: CLUSTER, programCluster: CLUSTER, nowSeconds: now,
+  });
+  assert.equal(read.status, 'unavailable');
+
+  const app = await resolveApp(failingRpc, w.appId, opts(w.routes, { trustedIssuers: [credential], nowSeconds: now }));
+  assert.equal(app?.programs[0]?.state, 'unverified');
+  assert.deepEqual(app?.programs[0]?.attestedBy, []);
+  assert.match(app?.programs[0]?.detail ?? '', /attestation RPC read unavailable; retry/);
 });

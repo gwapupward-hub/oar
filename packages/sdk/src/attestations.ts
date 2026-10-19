@@ -112,6 +112,8 @@ export function decodeAttestation(bytes: Uint8Array): DecodedAttestation {
 export type ClaimAttestation =
   | { status: 'none'; address: Address }
   | { status: 'invalid' | 'expired' | 'mismatch'; address: Address }
+  /** An RPC read failed: the attestation could not be judged either way. */
+  | { status: 'unavailable'; address: Address }
   | { status: 'valid'; address: Address; credential: Address; signer: Address; expiry: bigint };
 
 /** A bounded reader for the pinned SAS scalar wire format. */
@@ -162,6 +164,8 @@ export function validateClaimSchema(bytes: Uint8Array, credential: Address, name
 }
 
 /** Fully bind supported link attestations. Build and audit evidence remain unsupported. */
+const RPC_UNAVAILABLE = Symbol('rpc-unavailable');
+
 export async function fetchClaimAttestation(
   rpc: Rpc<GetAccountInfoApi>,
   args: { credential: Address; schema: OarSchemaName; appId: Address; subject: string;
@@ -172,17 +176,19 @@ export async function fetchClaimAttestation(
   const nonce = deriveAttestationNonce(args.schema, args.appId, args.subject, args);
   const address = await deriveAttestationPda(args.credential, schemaPda, nonce);
   if (!['oar-domain', 'oar-repo', 'oar-program'].includes(args.schema)) return { status: 'invalid', address };
+  // Transport failure is not invalid evidence: only successfully read accounts can be judged.
+  const read = (a: Address) => fetchEncodedAccount(rpc, a, { commitment: 'finalized' }).catch(() => { throw RPC_UNAVAILABLE; });
   try {
-    const account = await fetchEncodedAccount(rpc, address, { commitment: 'finalized' });
+    const account = await read(address);
     if (!account.exists) return { status: 'none', address };
     if (account.programAddress !== SAS_PROGRAM_ID) return { status: 'invalid', address };
-    const schema = await fetchEncodedAccount(rpc, schemaPda, { commitment: 'finalized' });
+    const schema = await read(schemaPda);
     if (!schema.exists || schema.programAddress !== SAS_PROGRAM_ID ||
         !validateClaimSchema(Uint8Array.from(schema.data), args.credential, args.schema)) return { status: 'invalid', address };
     const att = decodeAttestation(Uint8Array.from(account.data));
     if (att.nonce !== nonce || att.schema !== schemaPda || att.credential !== args.credential) return { status: 'mismatch', address };
     // SAS checks the signer only at issuance; removing a signer from the credential must also withdraw its evidence.
-    const credential = await fetchEncodedAccount(rpc, args.credential, { commitment: 'finalized' });
+    const credential = await read(args.credential);
     const signers = credential.exists && credential.programAddress === SAS_PROGRAM_ID ? decodeCredentialSigners(Uint8Array.from(credential.data)) : null;
     if (!signers?.includes(att.signer)) return { status: 'invalid', address };
     const r = new Reader(att.data);
@@ -200,5 +206,5 @@ export async function fetchClaimAttestation(
     if (checkedAt <= 0n || checkedAt > now || att.expiry === 0n || att.expiry > checkedAt + ttl || att.expiry <= checkedAt) return { status: 'invalid', address };
     if (att.expiry <= now || now - checkedAt >= ttl) return { status: 'expired', address };
     return { status: 'valid', address, credential: att.credential, signer: att.signer, expiry: att.expiry };
-  } catch { return { status: 'invalid', address }; }
+  } catch (e) { return { status: e === RPC_UNAVAILABLE ? 'unavailable' : 'invalid', address }; }
 }
