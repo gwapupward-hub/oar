@@ -1,11 +1,12 @@
 # Solana Community Template Gallery readiness
 
-Status as of 2026-10-19. Base reviewed: `main` at `7f9a0f6` (merge of #19). OAR is Devnet only; **mainnet is
-NO-GO**. Nothing in this report is a Solana Foundation listing or endorsement: OAR is listed only once upstream
-maintainers merge the contribution and https://solana.com/developers/templates shows it.
+Status as of 2026-10-19. Base reviewed: `main` at `4aba99b`. OAR is Devnet only; **mainnet is NO-GO**. Nothing in this
+report is a Solana Foundation listing or endorsement: OAR is listed only once upstream maintainers merge the
+contribution and https://solana.com/developers/templates shows it.
 
-**Submission complete: NO.** The template is built and passes upstream lint/validate/generate locally, but it is not
-submitted. The blockers are below.
+**Submission complete: NO.** The OAR starter and the upstream community template now depend on the npm-published SDK
+`@open-app-registry/sdk@0.1.1-rc.3` instead of a GitHub release tarball. Both pass the checks below locally, but the
+community template has not been submitted to `solana-foundation/templates`. The blockers are below.
 
 ## Gates
 
@@ -13,24 +14,29 @@ submitted. The blockers are below.
 | --- | --- | --- | --- | --- |
 | A. RPC outages never become failed proofs (#20) | PASS, merged (`fd8df61`) | [#20](https://github.com/gwapupward-hub/oar/pull/20): CI 7/7 green; SDK 59/59, CLI 8/8 | `deed540` | Done |
 | B. Manifest URI policy, reserved proof path, retryable state (#21) | PASS, merged (`c4d3f77`) | [#21](https://github.com/gwapupward-hub/oar/pull/21): CI 7/7 green; SDK 64/64, CLI 9/9, starter 10/10 | `40d6e5c` | Done |
-| B. Explorer shows outages as "Temporarily unavailable" (oar-web#13) | PASS, merged; inert until SDK bump | [oar-web#13](https://github.com/gwapupward-hub/oar-web/pull/13): CI green; 35/35 tests; build | `b5d1b8d` | Bump oar-web's SDK after rc.3 is tagged |
-| B. SDK release candidate v0.1.1-rc.3 (#22) | Merged (`88af035`); BLOCKED on tag | [#22](https://github.com/gwapupward-hub/oar/pull/22): CI green; `release.mjs check` OK; local packs identical | `1a08b4d` | Owner: tag `v0.1.1-rc.3` on `main` |
+| B. Explorer shows outages as "Temporarily unavailable" (oar-web#13) | PASS, merged; inert until SDK bump | [oar-web#13](https://github.com/gwapupward-hub/oar-web/pull/13): CI green; 35/35 tests; build | `b5d1b8d` | Bump oar-web's SDK to `0.1.1-rc.3` (it still pins rc.2) |
+| B. SDK release candidate v0.1.1-rc.3 (#22) | PASS: merged (`88af035`), tagged, published to npm | GitHub pre-release `v0.1.1-rc.3` (2026-10-19 07:49Z); npm `0.1.1-rc.3` (2026-10-19 09:52Z, `next` dist-tag); npm tarball byte-identical to the release asset | `1a08b4d` | Done |
 | C. Standalone template acceptance (#23) | PASS, merged (`6b69e01`) | [#23](https://github.com/gwapupward-hub/oar/pull/23): CI 7/7 green incl. extended external-template job; acceptance table below | `3d30a63` | Done |
-| D. Community template package | PASS locally; not submitted | `docs/gallery-submission/` (patch, PR draft); upstream checks below | templates `cdb4d8c` on upstream `d7961ba` | Clear the npm blocker, then fork and open the PR |
-| D. Upstream `security:check` | 1 HIGH advisory finding on this template | `dependency-remote-source`: SDK installed from a GitHub release tarball | — | Owner: approve npm publication of `@open-app-registry/sdk` |
+| D. Community template package | PASS locally on rc.3 from npm; patch regenerated; not submitted | `docs/gallery-submission/` (patch, PR draft); upstream checks below | upstream `6567909` on `d7961ba` | Owner: fork, `git am` the patch, review the lockfile notes below, then open the PR |
+| D. Upstream `security:check` | `dependency-remote-source` eliminated for this template (0 starter findings) | Upstream report, this run | — | None for this PR. Upstream may refresh its acknowledgement list (see risks) |
 | E. Devnet end-to-end (signed steps) | BLOCKED (owner signature) | `release/evidence/gallery-e2e-2026-10-19-Bu1JCyxi.json` | `522859e` | Record authority signs the prepared manifest update |
-| E. Upstream PR | BLOCKED (fork + blockers) | This session cannot fork `solana-foundation/templates` | — | Owner: fork, push the patch, open the PR |
+| E. Upstream PR | BLOCKED (fork + owner review) | This session cannot fork `solana-foundation/templates` | — | Owner: fork, push the patch, open the PR |
 
 ## Source and versions
 
-- OAR source reviewed: `main` `7f9a0f6`; stacked work in #20 → #21 → #22 / #23, and this branch.
+- OAR source reviewed: `main` `4aba99b`; stacked work in #20 → #21 → #22 / #23, and the branch for issue #26.
 - Program: unchanged since the devnet build (no diff under `programs/`, `Cargo.toml`, `Cargo.lock` since
   `v0.1.1-rc.2`). Tests ran against the released binary, sha256
   `e6112ffffdffb12817006ffe57856ad96d00f3ce84adb769baf126ddaaf37a5a` (matches the rc.2 `SHA256SUMS`).
-- SDK / CLI: published `0.1.1-rc.2` (GitHub release tarball). The starter and oar-web pin it. `0.1.1-rc.3` is
-  prepared (#22), not released. Local pack checksums: SDK `9a13cd3f…6b42`, CLI `5a792ab0…cc50`
-  (`release/evidence/local-pack-v0.1.1-rc.3-2026-10-19.json`, not release assets).
-- Starter requirements: Node ≥ 22 (tested 22.22.0 and 24.22.0), `create-solana-dapp@4.8.5` (npm `latest`).
+- SDK: `@open-app-registry/sdk@0.1.1-rc.3` is on npm (`next` dist-tag; `latest` is `0.0.0-stage`). Registry integrity
+  `sha512-Pa1QW2xW…8HQ==`. The npm tarball is byte-identical to the GitHub release asset
+  `open-app-registry-sdk-0.1.1-rc.3.tgz` (sha256 `9a13cd3f…6b42`, which matches `SHA256SUMS` on the release).
+- OAR starter (`packages/create-oar-dapp/templates/nextjs`) and the upstream community template pin the exact version
+  `0.1.1-rc.3` from npm. They previously pinned the rc.2 GitHub release tarball.
+- oar-web still pins rc.2 (gate B above).
+- Starter requirements: Node ≥ 22 for the community template, Node ≥ 24 for the OAR template (`engines`). In this
+  session the OAR template was typechecked and built on Node 22.22.0 and 24.22.0. The community template was checked
+  through the upstream health run (Node 22 in this sandbox).
 
 ## Fixed in this round
 
@@ -42,42 +48,70 @@ submitted. The blockers are below.
 | Manifest URIs on branches/`HEAD` accepted | `checkManifestUri` in SDK, CLI `register`/`update`/`claim`, starter | SDK, CLI and starter tests (positive and negative) |
 | `oar.json` usable as manifest location | reserved name, refused everywhere | same |
 | Outage indistinguishable from "no proof" for consumers | `retryable: true` on `unverified` claims | SDK tests; CLI and oar-web display tests |
-| Starter threw on RPC outage | `getProgramIdentity` → `verified \| unverified \| unavailable` | typechecks against rc.2 and new SDK |
+| Starter threw on RPC outage | `getProgramIdentity` → `verified \| unverified \| unavailable` | typechecks against rc.3 (this run) |
 | `create-solana-dapp` printed `+npm run dev` | commands on their own lines | test pins the `+`-at-start rule |
 | pnpm users: `oar:prepare -- --creator` failed | scripts accept pnpm's forwarded `--` | tests; real `pnpm run` |
 | Scanner false positive on `regex.exec(line)` | `line.match(regex)` | `pnpm security:check` |
+| Starter and gallery patch installed from a GitHub release tarball (HTTP 401 under pnpm 10.5.2; `dependency-remote-source`) | Exact pin `0.1.1-rc.3` from npm in the OAR template and the upstream package; patch regenerated; lockfile regenerated with pnpm 10.5.2 | fresh npm install; upstream frozen install under pnpm 10.5.2 (no 401); upstream `security:check` |
 
-## External template test results (create-solana-dapp@4.8.5)
+## Starter tests on rc.3 (this run)
 
 | Check | Result |
 | --- | --- |
-| Download `gh:gwapupward-hub/oar/packages/create-oar-dapp/templates/nextjs#<sha>`, rename to the project name | PASS (`alpha-dapp`, `beta-dapp`, `gamma-node24`) |
-| Install from the rc.2 tarball, no monorepo-relative paths | PASS on Node 22.22.0 and 24.22.0 |
-| `typecheck`, `build` | PASS on both |
-| `next start`: `/` 200 with "not registered" and "not a security audit"; unknown 404; no proof served | PASS (local and CI) |
-| `oar:prepare` refuses empty domain, keypair path, mainnet, bad program ID, overwrite, `HEAD` manifest URI | PASS |
-| Proofs valid against `schema/*-0.1.schema.json`; App IDs consistent | PASS |
-| Two projects with different names/creators: no shared state | PASS |
-| Anchor adapter: preview first, public IDs only, never the wallet path | PASS |
-| No keys, signing or transaction code in generated sources | PASS |
-| create-solana-dapp's optional "Solana dev skill" step | Failed in the sandbox (`npx skills`), reported as skipped by the CLI; not part of the template |
+| Fresh `npm install` of the OAR template from the public registry (no GitHub tarball) | PASS: SDK `0.1.1-rc.3` resolved, 92 packages, 0 vulnerabilities, no 401 |
+| `npm run typecheck` and production `npm run build` (Node 22.22.0) | PASS |
+| `npm run typecheck` and production `npm run build` (Node 24.22.0) | PASS |
+| `npm run oar:prepare -- --creator 91N96ZPG…` with a placeholder domain (scratch copy only) | PASS: App ID `Bu1JCyxi…`, the same App ID as the registered devnet app for this creator and nonce 0. Manifest and `oar.json` written |
+| `npm run oar:prepare` with no domain or manifest URI | Refused (intended guard) |
+| `oar:prepare` with a non-public creator (`not-a-key`) | Refused (intended guard) |
+| `next start`: `/` 200 with "not registered" and "not a security audit"; unknown route 404; prepared manifest served 200 | PASS |
+| `node --test packages/create-oar-dapp/test/*.test.mjs` | PASS 10/10 |
+| `create-solana-dapp@4.8.5` end-to-end (`gh:` download and rename) | Not rerun in this session. OAR's `external-template-smoke` job runs it on the PR |
 
-## Solana upstream validation (templates `d7961ba` + patch)
+Carried over from the rc.2 run (not repeated on rc.3): `create-solana-dapp` download and rename for `alpha-dapp`,
+`beta-dapp`, `gamma-node24`; `oar:prepare` refusals for empty domain, keypair path, mainnet, bad program ID, overwrite and
+`HEAD` manifest URI; schema validity of proofs; two projects with no shared state; Anchor adapter behavior; no key or
+signing code in generated sources; create-solana-dapp's optional "Solana dev skill" step failed in the sandbox and is not
+part of the template.
+
+## Solana upstream validation (templates `d7961ba` + patch `6567909`)
 
 | Command | Result |
 | --- | --- |
-| `pnpm install --frozen-lockfile` with pnpm 10.5.2 (upstream CI version), `--lockfile-only` | Lockfile up to date; diff adds only this importer and its closure (+128, −0) |
-| `pnpm generate` | Adds only `oar-identity-starter` to `templates.json`, `TEMPLATES.md`, `.github/workflows/templates.json` |
-| `pnpm lint` | All templates are valid; Prettier and `tsc` clean |
-| `pnpm validate` | Validation passed |
-| `pnpm security:check` | This template: 1 HIGH `dependency-remote-source` (advisory; workflow does not fail) |
-| `pnpm health --only community/oar-identity-starter --boot` | build ✅ boot ✅; warn: outdated majors (`@types/node`, `typescript`) |
-| `og-image.png` | 1200×630 PNG, 13,679 bytes, via `pnpm create-image "OAR App Identity"` (standard gallery layout) |
+| `pnpm install --frozen-lockfile` with pnpm 10.5.2 (upstream CI version) | PASS in 55.7 s; no HTTP 401; no GitHub tarball fetch |
+| `pnpm install --lockfile-only` with pnpm 10.5.2 (regeneration) | Exit 0. Churn beyond this importer is described below |
+| `pnpm generate` | PASS; no further changes to `templates.json`, `TEMPLATES.md`, `.github/workflows/templates.json` |
+| `pnpm lint` | PASS: all templates valid; Prettier and `tsc --noEmit` clean |
+| `pnpm validate` | PASS |
+| `pnpm security:check` | PASS (advisory). 46 templates and 2960 packages scanned. Starter: 0 findings. Report: 1 new LOW `dependency-build-script-blocked` for `puppeteer@23.11.1` at its `typescript@7.0.2` peer path (see risks), and 1 HIGH `manifest-lifecycle-script` on `x402-solana-rust` (acknowledged; not this template) |
+| `pnpm health --only community/oar-identity-starter --boot` | 0 pass · 1 warn · 0 fail. build ✅ boot ✅. Warn: `@types/node` 24.10.4 → 26.6.5 and `typescript` 5.9.3 → 7.0.2 are two majors behind |
+| `og-image.png` | Unchanged: 1200×630 PNG, 13,679 bytes |
 | Discovery | `templates.json` id `gh:solana-foundation/templates/community/oar-identity-starter`; listable by `create-solana-dapp` only after merge |
 
-Risk: with pnpm 10.5.2 in this sandbox, fetching the SDK's GitHub release asset returns HTTP 401 on the redirect
-(pnpm 10.28 and npm succeed). If upstream CI reproduces it, its frozen install fails. An npm-registry release of
-the SDK removes this risk together with the security finding.
+### Lockfile churn (for reviewers)
+
+Regenerating `pnpm-lock.yaml` with the npm SDK changes more than this template's importer. Parsed YAML compared with
+`d7961ba`:
+
+- Importers: 2 changed. `community/oar-identity-starter` (the new SDK entry). `community/solana-chatgpt-kit` (a
+  peer-variant hash only).
+- Packages: the rc.2 tarball entry becomes the npm entry. The registry also refreshed the `@paulmillr/qr` deprecation text.
+- Snapshots: 15 removed, 28 added, 33 changed. These are peer-context variants of packages already in the lockfile. The
+  visible effect is `ws` resolving to 8.21.0 or 8.22.0 in some contexts that used 8.18.3 before (used by
+  `@coinbase/cdp-sdk`, `@base-org/account`, `@solana-program/*` and `@solana-commerce/sdk`, among others). Some `@expo/*`
+  snapshots also changed their `optional` flag.
+
+Running the same regeneration on the unmodified base lockfile produced no changes, so the churn comes from adding the SDK's
+npm dependency graph, not from the pnpm version. Disabling pnpm's peer dedupe made it much worse, so that approach was
+discarded. Accepting this churn is a reviewer decision. The other templates were not built in this run; only the upstream
+checks above were.
+
+### Release-age guard
+
+Upstream `pnpm-workspace.yaml` sets `minimumReleaseAge: 1440`, but the pinned pnpm 10.5.2 used by every upstream workflow
+showed no warning and did not enforce it. `0.1.1-rc.3` was published at 09:52Z and resolved without any maturity check in
+the regeneration. Upstream should either upgrade pnpm to a version that implements the setting, or add an explicit
+exclusion for the SDK.
 
 Final template files (`community/oar-identity-starter/`): `.env.example`, `.gitignore`, `README.md`,
 `next.config.mjs`, `oar.config.json`, `og-image.png`, `package.json`, `scripts/import-anchor-programs.mjs`,
@@ -97,6 +131,8 @@ Live, read-only (`npm run devnet:gallery-e2e`, slot 512683656, commit `522859e`)
   `oarprotocol.xyz`, passes the URI policy, and is served byte-for-byte at its pinned URL.
 - Against that manifest, program, domain and repository all verify. The gate stays **BLOCKED** until the record
   authority signs the update. No transaction was sent.
+- Offline cross-check on rc.3 (this run): `oar:prepare` for the same creator and nonce 0 derives the same App ID,
+  `Bu1JCyxi…`.
 
 ### Remaining signed steps (owner only)
 
@@ -112,27 +148,35 @@ Live, read-only (`npm run devnet:gallery-e2e`, slot 512683656, commit `522859e`)
 ## Approvals required
 
 1. Done: #20, #21, #22, #23 and oar-web#13 are merged.
-2. Push tag `v0.1.1-rc.3` on `main` (GitHub pre-release by `release.yml`).
-3. Publish `@open-app-registry/sdk` to the npm registry (removes the remote-source finding and the pnpm 10.5.2 risk),
-   then point the starter, oar-web and the community template at it.
-4. Sign the Devnet manifest update above.
-5. Fork `solana-foundation/templates`, apply `docs/gallery-submission/0001-add-oar-identity-starter.patch`, push
-   branch `community/oar-identity-starter`, and open the PR with `docs/gallery-submission/PR-DESCRIPTION.md`.
+2. Done: tag `v0.1.1-rc.3` exists on `main` (GitHub pre-release published 2026-10-19 07:49Z).
+3. Done: `@open-app-registry/sdk@0.1.1-rc.3` is on npm (2026-10-19 09:52Z). The starter and the community template
+   now point at it. oar-web still needs its bump.
+4. Sign the Devnet manifest update above (owner).
+5. Owner: fork `solana-foundation/templates`, apply the regenerated `docs/gallery-submission/0001-add-oar-identity-starter.patch`
+   (upstream commit `6567909`), review the lockfile churn, push branch `community/oar-identity-starter`, and open the
+   PR with `docs/gallery-submission/PR-DESCRIPTION.md`.
 
 ```bash
 gh repo fork solana-foundation/templates --clone && cd templates
 git checkout -b community/oar-identity-starter d7961ba
 git am /path/to/oar/docs/gallery-submission/0001-add-oar-identity-starter.patch
-# after the SDK is on npm: set "@open-app-registry/sdk": "<version>" in community/oar-identity-starter/package.json
-pnpm install && pnpm generate && pnpm lint && pnpm validate && pnpm security:check
+# already pinned to "@open-app-registry/sdk": "0.1.1-rc.3" from npm; no edit needed
+pnpm install --frozen-lockfile && pnpm generate && pnpm lint && pnpm validate && pnpm security:check
 git push -u origin community/oar-identity-starter
 ```
 
 ## Unresolved risks
 
-- The community template and starter depend on SDK rc.2, which reports a failed backlink read as `failed`. The
-  starter's own helper turns that into `unverified` (never a failure badge), but oarprotocol.xyz still shows
-  "Disputed / invalid" during an RPC outage until oar-web takes rc.3.
+- **Lockfile churn.** The regenerated lockfile changes peer-context and `ws` resolutions for other templates (see above).
+  Upstream reviewers must accept it or ask for a narrower resolution. Those templates were not built in this run.
+- **Release-age guard inert.** `minimumReleaseAge: 1440` is not enforced by the pinned pnpm 10.5.2 (see above).
+- **Upstream acknowledgement drift.** `security:check` reports a LOW `puppeteer@23.11.1` note at a `typescript@7.0.2`
+  peer path. The same lockfile entry already exists on `d7961ba`. The stale acknowledgement is keyed to an older
+  `typescript@5.9.3` path. It is not introduced by this change, but upstream may need to refresh that entry.
+- **oarprotocol.xyz display.** It still shows "Disputed / invalid" during an RPC outage until oar-web takes rc.3. The
+  starter's own helper turns the same outage into `unverified`, never a failure badge.
+- **Upstream lockfile is the authoritative one.** The OAR template has no lockfile of its own. Only the regenerated
+  upstream lockfile is verified by the frozen install.
 - The OAR CLI is not on npm; the README points CLI users to the repository.
 - Upstream maintainers may ask for a different name, image or scope.
 
