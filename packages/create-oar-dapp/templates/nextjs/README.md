@@ -25,8 +25,11 @@ Edit `src/app/page.tsx` to build your product.
 
 - `src/lib/oar.ts` is a **server-only** @solana/kit + OAR SDK adapter that
   resolves a program's publisher identity only after the existing OAR verifier
-  confirms a canonical program backlink. Import `getVerifiedProgramIdentity`
+  confirms a canonical program backlink. Import `getProgramIdentity`
   into a server component or server-side handler, never a client component.
+  It returns `verified` (both sides agree), `unverified` (no matching proof;
+  not a statement that the program is unsafe) or `unavailable` (the RPC read
+  failed; show a retry, never a failure).
 - Development uses the public Solana Devnet endpoint; **production requires**
   the server-side `OAR_DEVNET_RPC_URL` environment variable pointing at a
   dedicated HTTPS Devnet RPC. Do not prefix a token-bearing RPC URL with `NEXT_PUBLIC_`.
@@ -69,6 +72,13 @@ OAR SDK to produce a strictly valid, RFC 8785-hashed manifest and reciprocal pro
 - `public/.well-known/oar-manifest.json`: hosted manifest, committed by hash onchain
 - `public/.well-known/oar.json`: domain proof (when `domain` is configured)
 - `oar.json`: GitHub root repository proof (when a repository is configured)
+
+A custom `manifestUri` must be immutable or pinned: `ar://`, `ipfs://`, or a raw
+GitHub/GitLab URL naming a full 40-character commit SHA. Branch, tag and `HEAD`
+references (`.../main/...`, `.../refs/heads/...`, `.../HEAD/...`) are refused,
+because the onchain hash would stop matching the next time the branch moves. The
+file name `oar.json` is reserved for the domain and repository proofs, so the
+manifest can never be hosted at a proof path.
 
 These files are NOT verification by themselves. A creator may have already used nonce
 0; check chain state before signing and pass `--nonce 1` or edit the config if needed.

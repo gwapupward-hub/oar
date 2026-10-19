@@ -23,26 +23,37 @@ function devnetRpcUrl(): string {
 }
 
 /**
- * A verifiable app identity for a specific deployed program.
- * Null means OAR could not establish a verified program link; it does not
- * mean the program is unsafe or inactive. No global trust badge is issued.
+ * What OAR can say about a deployed program. Only `verified` means both sides agree: the app's manifest claims the
+ * program and the program's upgrade authority published a canonical backlink to that App ID.
+ * - `unverified`: no matching proof was found. It does not mean the program is unsafe or inactive.
+ * - `unavailable`: verification could not complete (RPC outage); retry. Never show this as a failure.
+ * No state is a security audit or endorsement, and no global trust badge is issued.
  */
-export async function getVerifiedProgramIdentity(programId: string) {
+export type ProgramIdentity =
+  | { state: 'verified'; appId: string; name: string; program: string; cluster: typeof OAR_CLUSTER }
+  | { state: 'unverified'; program: string; cluster: typeof OAR_CLUSTER }
+  | { state: 'unavailable'; program: string; cluster: typeof OAR_CLUSTER; detail: string };
+
+export async function getProgramIdentity(programId: string): Promise<ProgramIdentity> {
+  const program = address(programId);
   const rpc = createSolanaRpc(devnetRpcUrl());
-  const result = await resolveProgram(rpc, address(programId), {
+  const result = await resolveProgram(rpc, program, {
     cluster: OAR_CLUSTER,
     trustedIssuers: [],
   });
   if (result && 'status' in result && result.status === 'unavailable') {
-    // Let callers show a retry state rather than a false "not verified" result.
-    throw new Error('OAR verification temporarily unavailable; retry the RPC request.');
+    // Written to compile against SDK releases before and after the typed `unavailable` result.
+    const detail = 'detail' in result && typeof result.detail === 'string' ? result.detail : 'OAR RPC read unavailable; retry';
+    return { state: 'unavailable', program, cluster: OAR_CLUSTER, detail };
   }
-  if (!result || result.link?.state !== 'verified' || !result.app.manifest.ok) return null;
+  if (!result || !('app' in result) || result.link?.state !== 'verified' || !result.app.manifest.ok) {
+    return { state: 'unverified', program, cluster: OAR_CLUSTER };
+  }
   return {
+    state: 'verified',
     appId: result.app.appId,
     name: result.app.manifest.manifest.name,
     program: result.program,
-    programLink: 'verified' as const,
     cluster: OAR_CLUSTER,
   };
 }

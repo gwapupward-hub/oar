@@ -4,7 +4,11 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { address } from '@solana/kit';
-import { buildClaimFiles, findAppId, hashManifestHex, validateManifest } from '@open-app-registry/sdk';
+import * as sdk from '@open-app-registry/sdk';
+import { checkManifestUri as localCheckManifestUri } from './lib/manifest-uri.mjs';
+
+const { buildClaimFiles, findAppId, hashManifestHex, validateManifest } = sdk;
+const checkManifestUri = sdk.checkManifestUri ?? localCheckManifestUri;
 
 function fail(reason) { throw new Error(reason); }
 function parse(argv) {
@@ -42,6 +46,11 @@ async function main() {
   const repos = cfg.repositories ?? [];
   const programs = cfg.programs ?? [];
   if (!Array.isArray(repos) || !Array.isArray(programs)) fail('repositories and programs must be arrays.');
+  if (cfg.manifestUri !== undefined && typeof cfg.manifestUri !== 'string') fail('manifestUri must be a string.');
+  if (cfg.manifestUri) {
+    const policy = checkManifestUri(cfg.manifestUri.trim());
+    if (!policy.ok) fail('Manifest URI refused: ' + policy.detail);
+  }
   const files = buildClaimFiles({
     appId, cluster: cfg.cluster, name: cfg.name,
     ...(cfg.summary ? { summary: cfg.summary } : {}),
@@ -51,8 +60,8 @@ async function main() {
   });
   const verified = validateManifest(files.manifest);
   if (!verified.valid) fail('Manifest failed SDK validation: ' + verified.errors.join('; '));
-  if (files.manifestUri.includes('/oar.json'))
-    fail('Do not host the manifest at a domain or repository proof path named oar.json.');
+  const policy = checkManifestUri(files.manifestUri);
+  if (!policy.ok) fail('Manifest URI refused: ' + policy.detail);
   const outputs = [
     ['public/.well-known/oar-manifest.json', files.manifest],
     ...(domains.length ? [['public/.well-known/oar.json', files.wellKnown]] : []),

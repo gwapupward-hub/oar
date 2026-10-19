@@ -157,3 +157,48 @@ test('standalone Solana CLI template contains defaults, metadata and no pre-gene
   assert.equal(manifest.cluster, cfg.cluster);
   assert.match(ok.stdout, /Not registered/);
 }));
+
+test('oar:prepare refuses mutable or proof-colliding manifest URIs and accepts pinned ones', () => withTemp(tmp => {
+  assert.equal(run(tmp, cli, ['pinned-app', '--name', 'Pinned App', '--domain', 'example.org',
+    '--repo', 'https://github.com/example/pinned-app']).status, 0);
+  const project = join(tmp, 'pinned-app');
+  const cfgPath = join(project, 'oar.config.json');
+  const prep = join(project, 'scripts/prepare-oar.mjs');
+  const cfg = JSON.parse(readFileSync(cfgPath, 'utf8'));
+  for (const uri of [
+    'https://raw.githubusercontent.com/example/pinned-app/refs/heads/main/oar-manifest.json',
+    'https://raw.githubusercontent.com/example/pinned-app/HEAD/oar-manifest.json',
+    'https://example.org/.well-known/oar.json',
+    'https://raw.githubusercontent.com/example/pinned-app/' + 'c'.repeat(40) + '/oar.json',
+  ]) {
+    writeFileSync(cfgPath, JSON.stringify({ ...cfg, manifestUri: uri }));
+    const r = run(project, prep, ['--creator', creator]);
+    assert.notEqual(r.status, 0, uri);
+    assert.match(r.stderr, /Manifest URI refused/, uri);
+    assert.ok(!existsSync(join(project, 'public/.well-known/oar-manifest.json')), 'nothing written for ' + uri);
+    assert.ok(!existsSync(join(project, 'oar.json')), 'no repository proof written for ' + uri);
+  }
+  const pinned = 'https://raw.githubusercontent.com/example/pinned-app/' + 'c'.repeat(40) + '/oar-manifest.json';
+  writeFileSync(cfgPath, JSON.stringify({ ...cfg, manifestUri: pinned }));
+  const ok = run(project, prep, ['--creator', creator]);
+  assert.equal(ok.status, 0, ok.stderr);
+  assert.match(ok.stdout, new RegExp('Manifest URI: ' + pinned));
+  // The manifest and the repository proof are always separate files.
+  assert.equal(JSON.parse(readFileSync(join(project, 'oar.json'), 'utf8')).apps.length, 1);
+  assert.equal(JSON.parse(readFileSync(join(project, 'public/.well-known/oar-manifest.json'), 'utf8')).oar, '0.1');
+}));
+
+test('starter manifest URI policy mirrors the SDK exactly', async () => {
+  const local = await import(join(root, 'packages/create-oar-dapp/templates/nextjs/scripts/lib/manifest-uri.mjs'));
+  const sdk = await import('@open-app-registry/sdk');
+  assert.equal(typeof sdk.checkManifestUri, 'function', 'build the SDK first');
+  const sha = 'a'.repeat(40);
+  for (const uri of [
+    'ar://abc', 'ipfs://bafy', 'ar://', 'http://x.org/m.json', 'https://u:p@x.org/m.json', 'https://x.org/.well-known/oar-manifest.json',
+    'https://x.org/.well-known/oar.json', `https://raw.githubusercontent.com/o/r/${sha}/m.json`, `https://raw.githubusercontent.com/o/r/${sha}/oar.json`,
+    'https://raw.githubusercontent.com/o/r/refs/heads/main/m.json', 'https://raw.githubusercontent.com/o/r/HEAD/m.json',
+    'https://raw.githubusercontent.com/o/r/main/m.json', `https://github.com/o/r/raw/${sha}/m.json`, 'https://github.com/o/r/blob/main/m.json',
+    'https://github.com/o/r/releases/download/v1/m.json', `https://gitlab.com/g/r/-/raw/${sha}/m.json`, 'https://gitlab.com/g/r/-/raw/main/m.json',
+    `https://cdn.jsdelivr.net/gh/o/r@${sha}/m.json`, 'https://cdn.jsdelivr.net/gh/o/r@main/m.json', `https://x.org/${'y'.repeat(260)}`,
+  ]) assert.deepEqual(local.checkManifestUri(uri), sdk.checkManifestUri(uri), uri);
+});
