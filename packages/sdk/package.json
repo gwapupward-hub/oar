@@ -43,5 +43,14 @@
   },
   "engines": {
     "node": ">=20.18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gwapupward-hub/oar.git",
+    "directory": "packages/sdk"
+  },
+  "homepage": "https://github.com/gwapupward-hub/oar/tree/main/packages/sdk",
+  "bugs": {
+    "url": "https://github.com/gwapupward-hub/oar/issues"
   }
 }
