@@ -83,6 +83,32 @@ test('claim prepare needs somewhere to serve the manifest and refuses an invalid
   assert.equal(existsSync(join(dir, 'b', 'claim.json')), false);
 });
 
+test('claim prepare, register and update refuse a mutable or proof-colliding manifest URI before signing', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'oar-claim-'));
+  const creator = keypairFile(dir, 'creator');
+  for (const [i, uri] of [
+    'https://raw.githubusercontent.com/example/app/refs/heads/main/oar-manifest.json',
+    'https://raw.githubusercontent.com/example/app/HEAD/oar-manifest.json',
+    'https://example.com/.well-known/oar.json',
+  ].entries()) {
+    const r = cli(['claim', 'prepare', '--creator', creator.address, '--name', 'X', '--domain', 'example.com',
+      '--manifest-uri', uri, '--nonce', '0', '-d', join(dir, `p${i}`)]);
+    assert.equal(r.status, 1, uri);
+    assert.match(r.stderr, /Manifest URI refused/, uri);
+    assert.equal(existsSync(join(dir, `p${i}`, 'claim.json')), false);
+  }
+  const appId = await findAppId({ creator: creator.address, nonce: 0n });
+  const manifest = join(dir, 'm.json');
+  writeFileSync(manifest, JSON.stringify({ oar: '0.1', app_id: appId, cluster: 'solana:devnet', name: 'X', categories: ['other'] }));
+  const offline = ['--cluster', 'devnet', '--rpc', 'http://127.0.0.1:9', '-k', creator.path];
+  const reg = cli(['register', '-m', manifest, '--uri', 'https://raw.githubusercontent.com/example/app/main/oar-manifest.json', ...offline]);
+  assert.equal(reg.status, 1);
+  assert.match(reg.stderr, /Not registering: .*mutable reference "main"/);
+  const upd = cli(['update', '--app', appId, '-m', manifest, '--uri', 'https://example.com/oar.json', ...offline]);
+  assert.equal(upd.status, 1);
+  assert.match(upd.stderr, /Not updating: .*reserved for domain and repository proofs/);
+});
+
 test('claim register refuses a keypair that is not the creator, and link-program a program the manifest does not list', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'oar-claim-'));
   const creator = keypairFile(dir, 'creator');

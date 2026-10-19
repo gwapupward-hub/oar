@@ -77,6 +77,10 @@ function loadValidManifest(path: string, expected?: { appId: string; cluster: Cl
 }
 
 const mark = { verified: '✓', attested: '✓', unverified: '·', failed: '✗' } as const;
+/** A claim whose check could not complete reads as a retry, never as a failure. */
+const stateLabel = (c: { state: keyof typeof mark; retryable?: true }) =>
+  c.retryable ? `${c.state}, temporarily unavailable (retry)` : c.state;
+const markFor = (c: { state: keyof typeof mark; retryable?: true }) => (c.retryable ? '?' : mark[c.state]);
 
 function printApp(app: ResolvedApp): void {
   const r = app.record;
@@ -92,8 +96,8 @@ function printApp(app: ResolvedApp): void {
   }
   const verified = [...app.programs, ...app.domains].some(c => c.state === 'verified' || c.state === 'attested');
   console.log(`Name       ${verified ? '' : 'Unverified: '}${m.manifest.name}`);
-  const row = (kind: string, c: { subject: string; state: keyof typeof mark; detail?: string; attestedBy: Address[] }) =>
-    console.log(`  ${mark[c.state]} ${kind.padEnd(8)} ${c.subject}  ${c.state}${c.attestedBy.length ? ` by ${c.attestedBy.join(', ')}` : ''}${c.detail && c.state !== 'verified' ? `  (${c.detail})` : ''}`);
+  const row = (kind: string, c: { subject: string; state: keyof typeof mark; detail?: string; attestedBy: Address[]; retryable?: true }) =>
+    console.log(`  ${markFor(c)} ${kind.padEnd(8)} ${c.subject}  ${stateLabel(c)}${c.attestedBy.length ? ` by ${c.attestedBy.join(', ')}` : ''}${c.detail && c.state !== 'verified' ? `  (${c.detail})` : ''}`);
   app.programs.forEach(c => row('program', c));
   app.domains.forEach(c => row('domain', c));
   app.repositories.forEach(c => row('repo', c));
@@ -165,6 +169,8 @@ program
     const signer = await loadKeypair(o.keypair);
     const appId = await findAppId({ creator: signer.address, nonce: BigInt(o.nonce) });
     const manifest = loadValidManifest(o.manifest, { appId, cluster });
+    const hosting = await checkManifestHosting(o.uri, manifest);
+    if (!hosting.ok) throw new Error(`Not registering: ${hosting.detail}`);
     const ix = await getRegisterInstructionAsync({
       creator: signer,
       nonce: BigInt(o.nonce),
@@ -189,6 +195,8 @@ program
     const cluster = parseCluster(o.cluster);
     const signer = await loadKeypair(o.keypair);
     const manifest = loadValidManifest(o.manifest, { appId: o.app, cluster });
+    const hosting = await checkManifestHosting(o.uri, manifest);
+    if (!hosting.ok) throw new Error(`Not updating: ${hosting.detail}`);
     const ix = getUpdateManifestInstruction({
       appRecord: address(o.app),
       authority: signer,
@@ -337,7 +345,7 @@ resolveOpts(program.command('resolve-program <program>').description('find the a
   }
   if (o.json) console.log(json(r));
   else {
-    console.log(`Program    ${prog}: link ${r.link?.state ?? 'not claimed by the manifest'}`);
+    console.log(`Program    ${prog}: link ${r.link ? stateLabel(r.link) : 'not claimed by the manifest'}`);
     printApp(r.app);
   }
 });
@@ -461,11 +469,11 @@ claim
     console.log(hosting.ok ? `✓ manifest   ${state.manifest_uri} serves this manifest` : `✗ manifest   ${hosting.detail}`);
     for (const host of manifest.domains ?? []) {
       const r = await checkDomain(host, appId, state.cluster);
-      console.log(`${mark[r.state]} domain     ${host}: ${r.state}${r.method ? ` via ${r.method}` : ''}${r.detail ? ` (${r.detail})` : ''}`);
+      console.log(`${markFor(r)} domain     ${host}: ${stateLabel(r)}${r.method ? ` via ${r.method}` : ''}${r.detail ? ` (${r.detail})` : ''}`);
     }
     for (const repo of manifest.repositories ?? []) {
       const r = await checkRepository(repo.url, appId, state.cluster);
-      console.log(`${mark[r.state]} repository ${repo.url}: ${r.state}${r.detail ? ` (${r.detail})` : ''}`);
+      console.log(`${markFor(r)} repository ${repo.url}: ${stateLabel(r)}${r.detail ? ` (${r.detail})` : ''}`);
     }
     for (const p of manifest.programs ?? []) {
       const progRpc = p.cluster === state.cluster ? rpc : rpcFor(p.cluster);
@@ -478,7 +486,7 @@ claim
           : owner.authority ? ` (sign with upgrade authority ${owner.authority}: oar claim link-program ${prog})`
           : ' (frozen or not upgradeable: needs an issuer attestation)';
       }
-      console.log(`${mark[link.state]} program    ${prog}: ${link.state}${link.detail && link.state !== 'verified' ? ` (${link.detail})` : ''}${signer}`);
+      console.log(`${markFor(link)} program    ${prog}: ${stateLabel(link)}${link.detail && link.state !== 'verified' ? ` (${link.detail})` : ''}${signer}`);
     }
     if (!hosting.ok) {
       console.error('\nNot ready: `oar claim register` refuses until the manifest above is served.');

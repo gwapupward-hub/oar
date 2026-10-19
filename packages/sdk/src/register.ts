@@ -45,7 +45,10 @@ import { APP_RECORD_SIZE, OAR_PROGRAM_ID, PROGRAM_METADATA_PROGRAM_ID, PROGRAM_M
 import { findAppRecordPda } from './generated/index.js';
 import { parseJsonStrict } from './json.js';
 import type { Category, OarManifest } from './manifest.js';
+import { checkManifestUri } from './uri.js';
 import { buildProgramLink, buildProofFile, type ProofFile } from './proofs.js';
+
+export { checkManifestUri, type ManifestUriCheck } from './uri.js';
 
 const SYSTEM_PROGRAM_ID = address('11111111111111111111111111111111');
 const COMPUTE_BUDGET_PROGRAM_ID = address('ComputeBudget111111111111111111111111111111');
@@ -114,6 +117,8 @@ export function buildClaimFiles(input: ClaimInput): ClaimFiles {
   const programs = input.programs ?? [];
   const manifestUri = input.manifestUri?.trim() || (domains[0] ? `https://${domains[0]}/.well-known/oar-manifest.json` : '');
   if (!manifestUri) throw new Error('Give a domain, or a URI where the manifest will be served.');
+  const uriPolicy = checkManifestUri(manifestUri);
+  if (!uriPolicy.ok) throw new Error(`Manifest URI refused: ${uriPolicy.detail}`);
   const manifest: OarManifest = {
     oar: '0.1',
     app_id: input.appId,

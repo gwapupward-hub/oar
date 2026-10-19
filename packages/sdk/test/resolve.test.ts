@@ -235,12 +235,15 @@ test('backlink RPC outage is unavailable, not invalid, absent or failed', async 
   assert.equal(proof.status, 'unavailable');
   const check = backlinkMatches(proof, w.appId, CLUSTER);
   assert.equal(check.state, 'unverified');
+  assert.equal(check.retryable, true);
   assert.match(check.detail ?? '', /RPC.*retry/i);
 
   const app = await resolveApp(failingRpc, w.appId, opts(w.routes));
   assert.equal(app?.programs[0]?.state, 'unverified');
+  assert.equal(app?.programs[0]?.retryable, true);
   assert.match(app?.programs[0]?.detail ?? '', /retry/i);
   assert.equal(app?.domains[0]?.state, 'verified', 'unrelated proofs should remain available');
+  assert.equal(app?.domains[0]?.retryable, undefined);
   assert.equal(app?.repositories[0]?.state, 'verified');
 
   const byProgram = await resolveProgram(failingRpc, w.program, opts(w.routes));
@@ -285,11 +288,13 @@ test('malformed successfully-read metadata stays invalid; genuinely missing meta
   const invalid = await fetchProgramBacklink(w.rpc, w.program);
   assert.equal(invalid.status, 'invalid');
   assert.equal(backlinkMatches(invalid, w.appId, CLUSTER).state, 'failed');
+  assert.equal(backlinkMatches(invalid, w.appId, CLUSTER).retryable, undefined);
 
   const anotherProgram = (await generateKeyPairSigner()).address;
   const missing = await fetchProgramBacklink(w.rpc, anotherProgram);
   assert.equal(missing.status, 'none');
   assert.equal(backlinkMatches(missing, w.appId, CLUSTER).state, 'unverified');
+  assert.equal(backlinkMatches(missing, w.appId, CLUSTER).retryable, undefined);
 });
 
 test('trusted attestation RPC outage is unavailable, never invalid evidence or a failed claim', async () => {
@@ -312,5 +317,6 @@ test('trusted attestation RPC outage is unavailable, never invalid evidence or a
   const app = await resolveApp(failingRpc, w.appId, opts(w.routes, { trustedIssuers: [credential], nowSeconds: now }));
   assert.equal(app?.programs[0]?.state, 'unverified');
   assert.deepEqual(app?.programs[0]?.attestedBy, []);
+  assert.equal(app?.programs[0]?.retryable, true);
   assert.match(app?.programs[0]?.detail ?? '', /attestation RPC read unavailable; retry/);
 });
