@@ -5,6 +5,9 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { parseAnchorDevnetPrograms } from './lib/anchor-programs.mjs';
 
+/** `pnpm run x -- --flag` forwards the `--` separator itself; npm and yarn strip it. */
+const cliArgs = () => (process.argv[2] === '--' ? process.argv.slice(3) : process.argv.slice(2));
+
 function fail(msg) { throw new Error(msg); }
 function parse(args) {
   const options = { workspace: '.', yes: false, replace: false };
@@ -28,7 +31,7 @@ function same(a, b) {
   return a.length === b.length && a.every((v, i) => v === b[i]);
 }
 function main() {
-  const o = parse(process.argv.slice(2));
+  const o = parse(cliArgs());
   const path = join(resolve(o.workspace), 'Anchor.toml');
   if (!existsSync(path)) fail('No Anchor.toml found at ' + path);
   const ids = parseAnchorDevnetPrograms(readFileSync(path, 'utf8'));

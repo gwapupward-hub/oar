@@ -7,6 +7,9 @@ import { address } from '@solana/kit';
 import * as sdk from '@open-app-registry/sdk';
 import { checkManifestUri as localCheckManifestUri } from './lib/manifest-uri.mjs';
 
+/** `pnpm run x -- --flag` forwards the `--` separator itself; npm and yarn strip it. */
+const cliArgs = () => (process.argv[2] === '--' ? process.argv.slice(3) : process.argv.slice(2));
+
 const { buildClaimFiles, findAppId, hashManifestHex, validateManifest } = sdk;
 const checkManifestUri = sdk.checkManifestUri ?? localCheckManifestUri;
 
@@ -33,7 +36,7 @@ function save(path, value, force) {
   writeFileSync(path, JSON.stringify(value, null, 2) + '\n', { flag: 'w' });
 }
 async function main() {
-  const opts = parse(process.argv.slice(2));
+  const opts = parse(cliArgs());
   const cfg = JSON.parse(readFileSync('oar.config.json', 'utf8'));
   if (cfg.standard !== '0.1' || cfg.cluster !== 'solana:devnet')
     fail('This starter only supports OAR standard 0.1 on solana:devnet.');

@@ -75,6 +75,10 @@ test('offline preparation uses the existing SDK, creates valid proofs, and refus
   assert.match(result.stdout, /Manifest SHA-256 \(RFC 8785\): [a-f0-9]{64}/);
   assert.notEqual(run(project, prep, ['--creator', creator]).status, 0);
   assert.equal(run(project, prep, ['--creator', creator, '--force']).status, 0);
+  // `pnpm run oar:prepare -- --creator X` passes the separator through.
+  const viaPnpm = run(project, prep, ['--', '--creator', creator, '--force']);
+  assert.equal(viaPnpm.status, 0, viaPnpm.stderr);
+  assert.notEqual(run(project, prep, ['--creator', creator, '--', '--force']).status, 0, 'only a leading separator is accepted');
   assert.notEqual(run(project, prep, ['--creator', 'not-a-key']).status, 0);
 }));
 
@@ -103,6 +107,7 @@ test('Anchor adapter previews only, imports public Devnet addresses after approv
   const preview = run(project, importer, params);
   assert.equal(preview.status, 0, preview.stderr);
   assert.match(preview.stdout, /Preview only/);
+  assert.equal(run(project, importer, ['--', ...params]).status, 0, 'pnpm-forwarded separator');
   const configPath = join(project, 'oar.config.json');
   assert.deepEqual(JSON.parse(readFileSync(configPath, 'utf8')).programs, []);
   const approve = run(project, importer, [...params, '--yes']);
