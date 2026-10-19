@@ -63,4 +63,5 @@ jobs:
           npm pack --dry-run -w @open-app-registry/sdk
 
       - name: Stage SDK (npm approval remains required)
-        run: npm stage publish -w @open-app-registry/sdk --access public --tag next
+        working-directory: packages/sdk
+        run: npm stage publish --access public --tag next
