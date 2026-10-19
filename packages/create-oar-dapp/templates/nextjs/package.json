@@ -44,10 +44,11 @@
   "create-solana-dapp": {
     "instructions": [
       "An OAR-ready starter is not a registered or verified application.",
-      "Edit oar.config.json: choose your real domain, repository and any deployed program IDs.",
-      "Start building: +{pm} run dev",
-      "After choosing your PUBLIC creator address: +{pm} run oar:prepare -- --creator YOUR_PUBLIC_WALLET",
-      "Then host the proof files, register on Devnet using your wallet at https://oarprotocol.xyz/register, and verify every link."
+      "Start building:",
+      "+{pm} run dev",
+      "Edit oar.config.json with your real domain, repository and any deployed program IDs, then prepare identity files from your PUBLIC creator address:",
+      "+{pm} run oar:prepare -- --creator YOUR_PUBLIC_WALLET",
+      "Host the generated files, register on Devnet with your own wallet at https://oarprotocol.xyz/register, and inspect every link's state."
     ],
     "skills": []
   }

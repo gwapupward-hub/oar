@@ -70,10 +70,21 @@ included in this implementation.
 ## Automated external-distribution smoke
 
 A separate GitHub workflow, `.github/workflows/external-template-smoke.yml`,
-runs Solana's published `create-solana-dapp@4.8.5` against the **public main
-branch**, verifies the generated package name and fail-closed OAR config,
-and independently installs, typechecks, and builds the project. It uses
-no deployed keys and no write-scoped GitHub credentials.
+runs Solana's published `create-solana-dapp@4.8.5` (the npm `latest` tag as
+of 2026-10-19) against the pull request's head commit (or the pushed commit),
+on Node 24. It:
+
+- verifies the generated package name and fail-closed OAR config;
+- installs, typechecks and builds the project with no monorepo dependency;
+- starts `next start` and checks the page states "not registered" and "not a
+  security audit or endorsement", with no pre-generated proof served;
+- runs `oar:prepare` from a public creator address only: it must refuse the
+  unconfigured template and a `HEAD` manifest URI, then produce a manifest,
+  domain proof and repository proof that pass the installed SDK's schema
+  validators and name the same App ID;
+- generates a second project name and checks nothing leaks from the first.
+
+It uses no deployed keys and no write-scoped GitHub credentials.
 
 It tests the public distribution path, not an onchain Devnet registration.
 A failure blocks declaring the external template verified; fix the CLI or

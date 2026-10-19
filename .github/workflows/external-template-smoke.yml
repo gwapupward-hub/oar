@@ -61,3 +61,71 @@ jobs:
           npm install --ignore-scripts --no-audit --no-fund
           npm run typecheck
           npm run build
+      - name: Production server serves the starter page
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/oar-external-smoke/smoke-external"
+          npx next start -p 3917 > "$RUNNER_TEMP/next-start.log" 2>&1 &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true' EXIT
+          for _ in $(seq 1 60); do curl -fsS -o /dev/null http://127.0.0.1:3917/ && break; sleep 1; done
+          page="$(curl -fsS http://127.0.0.1:3917/)"
+          grep -q 'Setup ready — not registered' <<<"$page"
+          grep -q 'not a security audit or endorsement' <<<"$page"
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3917/.well-known/oar.json)" = 404
+      - name: Identity preparation from a public address only, valid proofs, URI policy
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/oar-external-smoke/smoke-external"
+          creator=91N96ZPGHcFWe2jEZie9rUVqyHF5BWMV7mYnHMurhWB7
+          # Unconfigured template refuses to produce identity files.
+          if npm run -s oar:prepare -- --creator "$creator"; then echo 'prepared without a domain' >&2; exit 1; fi
+          test ! -e public/.well-known/oar-manifest.json
+          node --input-type=module -e "
+            import fs from 'node:fs';
+            const c = JSON.parse(fs.readFileSync('oar.config.json', 'utf8'));
+            Object.assign(c, { name: 'Smoke External', domain: 'smoke.example.org', repositories: ['https://github.com/example/smoke-external'],
+              manifestUri: 'https://raw.githubusercontent.com/example/smoke-external/HEAD/oar-manifest.json' });
+            fs.writeFileSync('oar.config.json', JSON.stringify(c, null, 2));"
+          if npm run -s oar:prepare -- --creator "$creator" 2> refused.log; then echo 'accepted a HEAD manifest URI' >&2; exit 1; fi
+          grep -q 'Manifest URI refused' refused.log
+          node --input-type=module -e "
+            import fs from 'node:fs';
+            const c = JSON.parse(fs.readFileSync('oar.config.json', 'utf8'));
+            delete c.manifestUri;
+            fs.writeFileSync('oar.config.json', JSON.stringify(c, null, 2));"
+          npm run -s oar:prepare -- --creator "$creator" | tee prepare.log
+          grep -q '^Not registered' prepare.log
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import assert from 'node:assert/strict';
+          import { validateManifest, validateProofFile } from '@open-app-registry/sdk';
+          const read = p => JSON.parse(fs.readFileSync(p, 'utf8'));
+          const manifest = read('public/.well-known/oar-manifest.json');
+          const domain = read('public/.well-known/oar.json');
+          const repo = read('oar.json');
+          assert.ok(validateManifest(manifest).valid, JSON.stringify(validateManifest(manifest).errors));
+          assert.ok(validateProofFile(domain).valid);
+          assert.ok(validateProofFile(repo).valid);
+          assert.equal(manifest.name, 'Smoke External');
+          assert.deepEqual(manifest.domains, ['smoke.example.org']);
+          assert.equal(domain.apps[0].app_id, manifest.app_id);
+          assert.equal(repo.apps[0].app_id, manifest.app_id);
+          assert.equal(manifest.cluster, 'solana:devnet');
+          JS
+      - name: A second project name generates an independent project
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/oar-external-smoke"
+          npm exec --yes --package=create-solana-dapp@4.8.5 -- create-solana-dapp second-external \
+            --template "gh:gwapupward-hub/oar/packages/create-oar-dapp/templates/nextjs#${{ github.event.pull_request.head.sha || github.sha }}" \
+            --skip-install --skip-git --skip-version-check
+          cd second-external
+          test "$(node -p "require('./package.json').name")" = second-external
+          test "$(node -p "require('./oar.config.json').domain")" = ""
+          test ! -e oar.json
+          test ! -e public/.well-known/oar-manifest.json
+          if grep -rq 'smoke' --exclude-dir=node_modules .; then echo 'state leaked from the first project' >&2; exit 1; fi
