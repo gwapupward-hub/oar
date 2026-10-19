@@ -34,6 +34,7 @@ export interface LinkCheck {
 export type BacklinkResult =
   | { status: 'none'; metadataAddress: Address }
   | { status: 'invalid'; metadataAddress: Address; reason: string }
+  | { status: 'unavailable'; metadataAddress: Address; reason: string }
   | { status: 'ok'; metadataAddress: Address; link: ProgramLink; mutable: boolean };
 
 /**
@@ -46,8 +47,12 @@ export async function fetchProgramBacklink(
   program: Address,
 ): Promise<BacklinkResult> {
   const [metadataAddress] = await findCanonicalPda({ program, seed: PROGRAM_METADATA_SEED });
+  // Transport failure is not an invalid proof: only a successfully read account can be judged.
+  const encoded = await fetchEncodedAccount(rpc, metadataAddress, { commitment: 'finalized' }).catch(() => null);
+  if (encoded === null) {
+    return { status: 'unavailable', metadataAddress, reason: 'RPC read unavailable; retry verification' };
+  }
   try {
-  const encoded = await fetchEncodedAccount(rpc, metadataAddress, { commitment: 'finalized' });
   if (!encoded.exists) return { status: 'none', metadataAddress };
   if (encoded.programAddress !== PROGRAM_METADATA_PROGRAM_ID) return { status: 'invalid', metadataAddress, reason: 'wrong metadata owner' };
   const account = decodeMetadata(encoded);
@@ -81,10 +86,11 @@ export async function fetchProgramBacklink(
   const v = validateProgramLink(parsed);
   if (!v.valid) return { status: 'invalid', metadataAddress, reason: `backlink schema: ${v.errors.join('; ')}` };
   return { status: 'ok', metadataAddress, link: parsed as ProgramLink, mutable: d.mutable };
-  } catch { return { status: 'invalid', metadataAddress, reason: 'metadata unavailable or malformed' }; }
+  } catch { return { status: 'invalid', metadataAddress, reason: 'metadata malformed' }; }
 }
 
 export function backlinkMatches(result: BacklinkResult, appId: string, appCluster: Cluster): LinkCheck {
+  if (result.status === 'unavailable') return { state: 'unverified', detail: result.reason };
   if (result.status === 'none') return { state: 'unverified', detail: 'no canonical oar backlink' };
   if (result.status === 'invalid') return { state: 'failed', detail: result.reason };
   if (result.link.app !== appId || result.link.cluster !== appCluster) {

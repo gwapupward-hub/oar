@@ -33,6 +33,10 @@ export async function getVerifiedProgramIdentity(programId: string) {
     cluster: OAR_CLUSTER,
     trustedIssuers: [],
   });
+  if (result && 'status' in result && result.status === 'unavailable') {
+    // Let callers show a retry state rather than a false "not verified" result.
+    throw new Error('OAR verification temporarily unavailable; retry the RPC request.');
+  }
   if (!result || result.link?.state !== 'verified' || !result.app.manifest.ok) return null;
   return {
     appId: result.app.appId,

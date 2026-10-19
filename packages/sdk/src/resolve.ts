@@ -9,6 +9,14 @@ import { DuplicateKeyError } from './json.js';
 
 type AccountRpc = Rpc<GetAccountInfoApi>;
 
+/** A transport outage must not look like an absent or malformed AppRecord. */
+export class OarRpcUnavailableError extends Error {
+  constructor() {
+    super('OAR RPC read unavailable; retry verification');
+    this.name = 'OarRpcUnavailableError';
+  }
+}
+
 export type LinkState = 'verified' | 'attested' | 'unverified' | 'failed';
 
 export interface ClaimResult {
@@ -83,8 +91,13 @@ function combine(subject: string, live: LinkCheck | null, attestedBy: Address[])
  */
 export async function resolveApp(rpc: AccountRpc, appId: Address, opts: ResolveOptions): Promise<ResolvedApp | null> {
   let record: AppRecord;
+  let encoded: Awaited<ReturnType<typeof fetchEncodedAccount>>;
   try {
-    const encoded = await fetchEncodedAccount(rpc, appId, { commitment: 'finalized' });
+    encoded = await fetchEncodedAccount(rpc, appId, { commitment: 'finalized' });
+  } catch {
+    throw new OarRpcUnavailableError();
+  }
+  try {
     if (!encoded.exists || encoded.programAddress !== OAR_PROGRAM_ID || encoded.data.length !== APP_RECORD_SIZE ||
         !bytesEqual(encoded.data.slice(0, 8), APP_RECORD_DISCRIMINATOR)) return null;
     record = decodeAppRecord(encoded).data;
@@ -143,6 +156,13 @@ export async function resolveApp(rpc: AccountRpc, appId: Address, opts: ResolveO
   return base;
 }
 
+/** Explicit retryable result: never conflate an RPC outage with no backlink. */
+export interface UnavailableProgramResolution {
+  status: 'unavailable';
+  program: Address;
+  detail: string;
+}
+
 export interface ResolvedProgram {
   program: Address;
   app: ResolvedApp;
@@ -155,18 +175,25 @@ export interface ResolvedProgram {
  * the manifest claims the program back. Wallets SHOULD show the app name only
  * when `link.state === 'verified'`.
  */
-export async function resolveProgram(rpc: AccountRpc, program: Address, opts: ResolveOptions): Promise<ResolvedProgram | null> {
+export async function resolveProgram(rpc: AccountRpc, program: Address, opts: ResolveOptions): Promise<ResolvedProgram | UnavailableProgramResolution | null> {
   const backlink = await fetchProgramBacklink(rpc, program);
+  if (backlink.status === 'unavailable') return { status: 'unavailable', program, detail: backlink.reason };
   if (backlink.status !== 'ok') return null;
   const appCluster = backlink.link.cluster;
   const appRpc = appCluster === opts.cluster ? rpc : opts.rpcByCluster?.[appCluster];
-  if (!appRpc) return null;
+  if (!appRpc) return { status: 'unavailable', program, detail: `No RPC configured for ${appCluster}; retry with an RPC for that cluster` };
 
-  const app = await resolveApp(appRpc, backlink.link.app as Address, {
-    ...opts,
-    cluster: appCluster,
-    rpcByCluster: { ...opts.rpcByCluster, [opts.cluster]: rpc },
-  });
+  let app: ResolvedApp | null;
+  try {
+    app = await resolveApp(appRpc, backlink.link.app as Address, {
+      ...opts,
+      cluster: appCluster,
+      rpcByCluster: { ...opts.rpcByCluster, [opts.cluster]: rpc },
+    });
+  } catch (e) {
+    if (e instanceof OarRpcUnavailableError) return { status: 'unavailable', program, detail: e.message };
+    throw e;
+  }
   if (!app) return null;
   const link = app.programs.find(p => p.subject === program && p.cluster === opts.cluster) ?? null;
   return { program, app, link };
