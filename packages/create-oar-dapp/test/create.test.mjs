@@ -198,6 +198,54 @@ test('oar:prepare refuses mutable or proof-colliding manifest URIs and accepts p
   assert.equal(JSON.parse(readFileSync(join(project, 'public/.well-known/oar-manifest.json'), 'utf8')).oar, '0.1');
 }));
 
+test('oar:prepare rejects an incomplete nonce without touching existing proofs', () => withTemp(tmp => {
+  assert.equal(run(tmp, cli, ['nonce-case', '--domain', 'example.org']).status, 0);
+  const project = join(tmp, 'nonce-case');
+  const prep = join(project, 'scripts/prepare-oar.mjs');
+  const first = run(project, prep, ['--creator', creator]);
+  assert.equal(first.status, 0, first.stderr);
+  const manifestPath = join(project, 'public/.well-known/oar-manifest.json');
+  const prior = readFileSync(manifestPath, 'utf8');
+  for (const args of [
+    ['--creator', creator, '--force', '--nonce'],
+    ['--creator', creator, '--nonce', '--force'],
+  ]) {
+    const r = run(project, prep, args);
+    assert.notEqual(r.status, 0, 'Missing nonce must fail: ' + args.join(' '));
+    assert.match(r.stderr, /--nonce requires/);
+    assert.equal(readFileSync(manifestPath, 'utf8'), prior, 'Failed parse must not overwrite identity files');
+  }
+  assert.equal(run(project, prep, ['--creator', creator, '--force', '--nonce', '1']).status, 0);
+}));
+
+test('oar:prepare refuses stale domain proofs after switching to an external manifest URI', () => withTemp(tmp => {
+  assert.equal(run(tmp, cli, ['domain-case', '--domain', 'example.org',
+    '--repo', 'https://github.com/example/domain-case']).status, 0);
+  const project = join(tmp, 'domain-case');
+  const prep = join(project, 'scripts/prepare-oar.mjs');
+  const first = run(project, prep, ['--creator', creator]);
+  assert.equal(first.status, 0, first.stderr);
+  const proofPath = join(project, 'public/.well-known/oar.json');
+  const manifestPath = join(project, 'public/.well-known/oar-manifest.json');
+  const priorProof = readFileSync(proofPath, 'utf8');
+  const priorManifest = readFileSync(manifestPath, 'utf8');
+  const cfgPath = join(project, 'oar.config.json');
+  const cfg = JSON.parse(readFileSync(cfgPath, 'utf8'));
+  cfg.domain = '';
+  cfg.manifestUri = 'https://raw.githubusercontent.com/example/domain-case/' + 'a'.repeat(40) + '/manifest.json';
+  writeFileSync(cfgPath, JSON.stringify(cfg, null, 2) + '\n');
+  const refused = run(project, prep, ['--creator', creator, '--force']);
+  assert.notEqual(refused.status, 0, 'A domainless manifest must refuse a stale published proof');
+  assert.match(refused.stderr, /Stale domain proof/);
+  assert.equal(readFileSync(proofPath, 'utf8'), priorProof);
+  assert.equal(readFileSync(manifestPath, 'utf8'), priorManifest);
+  rmSync(proofPath);
+  const ok = run(project, prep, ['--creator', creator, '--force']);
+  assert.equal(ok.status, 0, ok.stderr);
+  assert.deepEqual(JSON.parse(readFileSync(manifestPath, 'utf8')).domains, []);
+  assert.ok(!existsSync(proofPath));
+}));
+
 test('starter manifest URI policy mirrors the SDK exactly', async () => {
   const local = await import(join(root, 'packages/create-oar-dapp/templates/nextjs/scripts/lib/manifest-uri.mjs'));
   const sdk = await import('@open-app-registry/sdk');
