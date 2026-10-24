@@ -1,0 +1,87 @@
+{
+  "kind": "gallery e2e (non-signing steps only)",
+  "at": "2026-10-24T08:46:24.767Z",
+  "slot": "514552519",
+  "rpcHost": "api.devnet.solana.com",
+  "sourceCommit": "d3042c62c95dfb6c69d7867b801999bb44887c2c",
+  "sourceDirty": true,
+  "versions": {
+    "node": "v24.22.1",
+    "sdk": "0.1.1-rc.3"
+  },
+  "appId": "Bu1JCyxiVDdDGjtNLLkKhq6KZv6E4LcUgqNkS5t5Nf2K",
+  "creator": "91N96ZPGHcFWe2jEZie9rUVqyHF5BWMV7mYnHMurhWB7",
+  "nonce": "0",
+  "cluster": "solana:devnet",
+  "manifest": {
+    "uri": "https://raw.githubusercontent.com/gwapupward-hub/oar/05ff278aab30d76bd41cd9505960e8b5f3400d8e/release/devnet/oar.manifest.json",
+    "sha256": "0c4bf3a07834010980722c5c7a91253663618b5c08a1178873e3d77d104068cb",
+    "schemaValid": true,
+    "uriPolicy": {
+      "ok": true
+    },
+    "hosting": {
+      "ok": false,
+      "reason": "unreachable",
+      "detail": "https://raw.githubusercontent.com/gwapupward-hub/oar/05ff278aab30d76bd41cd9505960e8b5f3400d8e/release/devnet/oar.manifest.json: HTTPS request failed"
+    }
+  },
+  "record": {
+    "manifestUri": "https://raw.githubusercontent.com/gwapupward-hub/oar/05ff278aab30d76bd41cd9505960e8b5f3400d8e/release/devnet/oar.manifest.json",
+    "manifestSha256": "0c4bf3a07834010980722c5c7a91253663618b5c08a1178873e3d77d104068cb",
+    "revision": 1,
+    "authority": "91N96ZPGHcFWe2jEZie9rUVqyHF5BWMV7mYnHMurhWB7",
+    "matchesPrepared": true
+  },
+  "domains": [
+    {
+      "subject": "oarprotocol.xyz",
+      "state": "unverified",
+      "detail": "HTTPS request failed | dns: queryTxt ECONNREFUSED _oar.oarprotocol.xyz",
+      "retryable": true
+    }
+  ],
+  "repositories": [
+    {
+      "subject": "https://github.com/gwapupward-hub/oar",
+      "state": "unverified",
+      "detail": "HTTPS request failed",
+      "retryable": true
+    }
+  ],
+  "programs": [
+    {
+      "program": "oariw8YXcYJh9sa9VcmBU3ZCdo2WVGMYPsLjEuUxfrC",
+      "backlink": "verified",
+      "deployed": true,
+      "upgradeAuthority": "2iceQADt8dJwpRLqoszVTcnRVnPUfBFtKxMTuqvWoovr"
+    }
+  ],
+  "resolved": {
+    "status": "Active",
+    "manifest": "unavailable",
+    "claims": []
+  },
+  "claims": [
+    {
+      "kind": "program",
+      "subject": "oariw8YXcYJh9sa9VcmBU3ZCdo2WVGMYPsLjEuUxfrC",
+      "state": "verified"
+    },
+    {
+      "kind": "domain",
+      "subject": "oarprotocol.xyz",
+      "state": "unverified"
+    },
+    {
+      "kind": "repository",
+      "subject": "https://github.com/gwapupward-hub/oar",
+      "state": "unverified"
+    }
+  ],
+  "preflightErrors": [],
+  "remainingSignedSteps": [],
+  "gate": "BLOCKED",
+  "transactionSignatures": [],
+  "note": "No transaction was sent. Signatures for the remaining steps are added by the person who signs them."
+}
