@@ -242,7 +242,9 @@ test('oar:prepare refuses stale domain proofs after switching to an external man
   rmSync(proofPath);
   const ok = run(project, prep, ['--creator', creator, '--force']);
   assert.equal(ok.status, 0, ok.stderr);
-  assert.deepEqual(JSON.parse(readFileSync(manifestPath, 'utf8')).domains, []);
+  const domainlessManifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+  assert.equal(domainlessManifest.domains, undefined, 'SDK omits an unclaimed optional domains field');
+  assert.equal(domainlessManifest.links, undefined, 'No website link is asserted without a domain');
   assert.ok(!existsSync(proofPath));
 }));
 
