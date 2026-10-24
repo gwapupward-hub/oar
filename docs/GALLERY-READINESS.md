@@ -1,5 +1,36 @@
 # Solana Community Template Gallery readiness
 
+## Current status (2026-10-24)
+
+**OAR is registered on Devnet with its updated manifest; it is not yet listed in the Solana Foundation gallery.**
+Mainnet remains **NO-GO**. The table and detailed acceptance work below are the historical 2026-10-19
+snapshot; use this section for subsequent status.
+
+| Gate | Current evidence | Status / next action |
+| --- | --- | --- |
+| npm SDK migration | Issue #26 closed; PR #27 merged, SDK `0.1.1-rc.3` on npm | DONE |
+| Starter review | PR #28 merged as `d3042c6` with client, program, dependency and external-template checks green | DONE |
+| Solana Foundation submission | [upstream PR #507](https://github.com/solana-foundation/templates/pull/507), refreshed at `8a1d330`; merge conflicts cleared; Greptile check successful | OPEN: Foundation approval and merge pending |
+| Owner-controlled manifest update | Finalized Devnet transaction `3Wy5C33e3ur8UZa5VdHx728v3Dv49tjjdgzkPLgFbcwKL67gGADvDKwaSYZftQoqHA9YDHDoDFBjNy6FA12Tvp2o` (slot `514548950`), authority `91N96ZPG…`, App ID `Bu1JCyxi…` revision **1** | DONE; no further owner signature needed |
+| Updated manifest | Immutable URI at commit `05ff278a…`, canonical SHA-256 `0c4bf3a07834010980722c5c7a91253663618b5c08a1178873e3d77d104068cb`; record URI and hash match | DONE |
+| Reciprocal proof endpoints | Manifest, `https://oarprotocol.xyz/.well-known/oar.json`, and repository-root `oar.json` each returned HTTP 200 without a redirect; program backlink verified on Devnet | Independently observed; full SDK verifier remains an environment-dependent check |
+| Gallery E2E verdict | `release/evidence/gallery-e2e-2026-10-24-Bu1JCyxi.json` | BLOCKED in current runner: SDK's protected Node HTTPS transport cannot fetch GitHub/domain proofs, even though direct HTTPS checks succeed |
+
+The gallery E2E gate now fails closed when hosting is unreachable, the live resolver cannot load the manifest,
+or expected claims are absent or unverified. A `PASS` from the old gate with zero resolved claims was a false
+positive, **not** proof of listing readiness. Rerun the read-only command below from an environment where
+the SDK's protected HTTPS transport can reach the proof hosts; require the resolved manifest to be `ok`,
+the app to be `Active`, and program, domain and repository claims all `verified` before updating this gate.
+Do not bypass or weaken the SDK's destination-safety checks to make the command pass.
+
+```bash
+npm run devnet:gallery-e2e -- --creator 91N96ZPGHcFWe2jEZie9rUVqyHF5BWMV7mYnHMurhWB7 \
+  --manifest release/devnet/oar.manifest.json \
+  --manifest-uri https://raw.githubusercontent.com/gwapupward-hub/oar/05ff278aab30d76bd41cd9505960e8b5f3400d8e/release/devnet/oar.manifest.json
+```
+
+## Historical 2026-10-19 assessment (superseded where noted above)
+
 Status as of 2026-10-19. Base reviewed: `main` at `4aba99b`. OAR is Devnet only; **mainnet is NO-GO**. Nothing in this
 report is a Solana Foundation listing or endorsement: OAR is listed only once upstream maintainers merge the
 contribution and https://solana.com/developers/templates shows it.

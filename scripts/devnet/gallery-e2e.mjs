@@ -29,11 +29,17 @@ export function remainingSignedSteps({ registered, recordManifestMatches, progra
   return steps;
 }
 
-/** PASS needs every claim verified on a registered record serving this manifest; anything a signature fixes is BLOCKED. */
-export function gateStatus({ preflightErrors, registered, recordManifestMatches, claims, remaining }) {
-  if (preflightErrors.length) return 'FAIL';
+/** PASS requires the hosted manifest and every declared reciprocal link to resolve, not just an empty claim list. */
+export function gateStatus({ preflightErrors, hosting, registered, recordManifestMatches, resolved, expectedClaims, claims, remaining }) {
+  if (preflightErrors.length || hosting?.reason === 'different' || hosting?.reason === 'unsafe-uri') return 'FAIL';
+  if (['hash-mismatch', 'schema', 'app-id-mismatch', 'cluster-mismatch'].includes(resolved?.manifest)) return 'FAIL';
   if (claims.some(c => c.state === 'failed')) return 'FAIL';
   if (!registered || !recordManifestMatches || remaining.length) return 'BLOCKED';
+  if (!hosting?.ok || !resolved || resolved.manifest !== 'ok' || resolved.status !== 'Active') return 'BLOCKED';
+  if (!Array.isArray(expectedClaims) || !expectedClaims.length || claims.length !== expectedClaims.length) return 'BLOCKED';
+  const expected = expectedClaims.map(c => `${c.kind}:${c.subject}`).sort();
+  const observed = claims.map(c => `${c.kind}:${c.subject}`).sort();
+  if (expected.some((key, i) => key !== observed[i])) return 'BLOCKED';
   if (claims.some(c => c.state !== 'verified')) return 'BLOCKED';
   return 'PASS';
 }
@@ -105,7 +111,10 @@ async function main() {
         .map(c => ({ kind: c.kind, subject: c.subject, state: c.state, method: c.method ?? null, detail: c.detail ?? null, retryable: c.retryable ?? false })),
     };
   }
-  const claims = recordManifestMatches && resolved ? resolved.claims
+  const expectedClaims = [...(manifest.programs ?? []).map(p => ({ kind: 'program', subject: p.address })),
+    ...(manifest.domains ?? []).map(host => ({ kind: 'domain', subject: host })),
+    ...(manifest.repositories ?? []).map(r => ({ kind: 'repository', subject: r.url }))];
+  const claims = recordManifestMatches && resolved?.manifest === 'ok' ? resolved.claims
     : [...programs.map(p => ({ kind: 'program', subject: p.program, state: p.backlink })),
       ...domains.map(d => ({ kind: 'domain', subject: d.subject, state: d.state })),
       ...repositories.map(r => ({ kind: 'repository', subject: r.subject, state: r.state }))];
@@ -126,7 +135,7 @@ async function main() {
     record: registered ? { manifestUri: record.data.manifestUri, manifestSha256: recordHash, revision: record.data.revision, authority: record.data.authority, matchesPrepared: recordManifestMatches } : null,
     domains, repositories, programs, resolved, claims,
     preflightErrors, remainingSignedSteps: remaining,
-    gate: gateStatus({ preflightErrors, registered, recordManifestMatches, claims, remaining }),
+    gate: gateStatus({ preflightErrors, hosting, registered, recordManifestMatches, resolved, expectedClaims, claims, remaining }),
     transactionSignatures: [],
     note: 'No transaction was sent. Signatures for the remaining steps are added by the person who signs them.',
   };
